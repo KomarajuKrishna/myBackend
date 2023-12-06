@@ -6,9 +6,9 @@ const cors = require("cors");
 // const userRoutes = require('./routes/userRoutes')
 const api = require('./routes/userRoutes')
 
-const app = express();
-app.use(bodyParser.json());
-app.use(cors());
+// const app = express();
+// app.use(bodyParser.json());
+// app.use(cors());
 
 const port = 3000;
 
