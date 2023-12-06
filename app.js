@@ -31,4 +31,4 @@ app.listen(port, () => {
   console.log(`Server is Running at: http://localhost:${port}`);
 });
 
-// app.use('/', api);
+app.use('/', api);
