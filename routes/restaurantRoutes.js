@@ -5,7 +5,7 @@ const Restaurant = require('../schema/registerSchema')
 const router = express.Router();   // requiring router
 // const UserSignup = require('../Models/register')
 const UserSignup = require('../schema/registerSchema')
-const OneSignal = require('@onesignal/node-onesignal')
+// const OneSignal = require('@onesignal/node-onesignal')
 // const geolib = require('geolib');
 // const jwtMiddleware =require('../jwtauth')
 
@@ -152,12 +152,6 @@ router.post('/typeOfRestuarents', (req, res, next) => {
             res.status(400).send(error)
         } 
         })
-
- 
-
-
-    
-    
 
     router.get('/restaurant', async (req,res) =>{ 
         try{   
@@ -953,11 +947,9 @@ router.post('/SuperAdminAccept', async (req,res,next)=>{
         });
         resp.send(restaurants);
       });
-      
-
 
         //get all reservations based on the Restuarent Code
-        router.post('/getRatingscount',jwtMiddleware.verifyToken, (req, res, next)=>{
+        router.post('/getRatingscount', (req, res, next)=>{
             var query= {"RestaurantCode":req.body.RestaurantCode}  
   
             Restaurant.find(query).select().exec().then(
@@ -1063,9 +1055,6 @@ router.post('/SuperAdminAccept', async (req,res,next)=>{
                     })
                 })
             })
-
-
-
 
             router.get('/calculatedistance/:lat/:lon', (req, res) => {
                 const { lat, lon } = req.params; // Get your current location
