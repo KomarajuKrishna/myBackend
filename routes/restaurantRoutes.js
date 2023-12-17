@@ -5,7 +5,7 @@ const Restaurant = require('../schema/registerSchema')
 const router = express.Router();   // requiring router
 // const UserSignup = require('../Models/register')
 const UserSignup = require('../schema/registerSchema')
-const OneSignal = require('@onesignal/node-onesignal')
+// const OneSignal = require('@onesignal/node-onesignal')
 // const geolib = require('geolib');
 // const jwtMiddleware =require('../jwtauth')
 
@@ -155,16 +155,10 @@ router.get('/getallrestaurants', async (req, res) => {
     }
 })
 
-
-
-
-
-
-
-router.get('/restaurant', async (req, res) => {
-    try {
-
-        const restaurants = await Restaurant.find()  // async makes a function return a Promise
+    router.get('/restaurant', async (req,res) =>{ 
+        try{   
+            
+            const restaurants = await Restaurant.find()  // async makes a function return a Promise
 
         var clubs = restaurants.filter((data) => {
             return (data.restaurantType == "NightLife" && data.superAdminAccept == "Accepted")
@@ -955,70 +949,68 @@ router.get("/search/:key", async (req, resp) => {
             { restaurantName: { $regex: new RegExp(req.params.key, "i") } },
             { restaurantType: { $regex: new RegExp(req.params.key, "i") } }
             // Add more fields as needed
-        ]
-    });
-    resp.send(restaurants);
-});
+          ]
+        });
+        resp.send(restaurants);
+      });
 
-
-
-//get all reservations based on the Restuarent Code
-router.post('/getRatingscount', jwtMiddleware.verifyToken, (req, res, next) => {
-    var query = { "RestaurantCode": req.body.RestaurantCode }
-
-    Restaurant.find(query).select().exec().then(
-        doc => {
-            for (let i = 0; i < doc.length; i++) {
-                var allRes = doc[i].allRatings
-                console.log(allRes)
+        //get all reservations based on the Restuarent Code
+        router.post('/getRatingscount', (req, res, next)=>{
+            var query= {"RestaurantCode":req.body.RestaurantCode}  
+  
+            Restaurant.find(query).select().exec().then(
+               doc=>{
+                   for(let i=0;i<doc.length;i++){
+                      var allRes = doc[i].allRatings
+                      console.log(allRes)
+                   }
+          
+                   if(allRes){
+          
+                   res.status(200).json({
+                      allRatings: allRes,
+                       message:"got the matching Reservations based on the profile",
+                       status:"success"
+                   })
+                 
+                 
+               }else{
+                   res.status(400).json({
+                       message:"no matching Resevations found",
+                       status:"no docs"
+                   })
+       
+               }
+  
+               }
+           ).catch(err=>{
+               res.status(400).json({
+                   message:"no Reservations found found",
+                   status: "failed",
+                   error:err
+               })
+           })
+          }) 
+          router.put('/updateAvgRate/:RestaurantCode', async (req, res) =>{
+            const updates = Object.keys(req.body)   // keys will be stored in updates => req body field names.
+            const allowedUpdates = ['totalAvgRating','superAdminAccept','Query']  // updates that are allowed
+            const isValidOperation = updates.every((update) => allowedUpdates.includes(update)) // validating the written key in req.body with the allowedUpdates
+            if (!isValidOperation) {
+                return res.status(400).json({ error: 'invalid updates' })
             }
-
-            if (allRes) {
-
-                res.status(200).json({
-                    allRatings: allRes,
-                    message: "got the matching Reservations based on the profile",
-                    status: "success"
-                })
-
-
-            } else {
-                res.status(400).json({
-                    message: "no matching Resevations found",
-                    status: "no docs"
-                })
-
+            try {  // try  catch error is to catch the errors in process
+                const reg = await Register.findOne({ _id: req.params.id }) // finding the product to be updated
+                if (!reg) { //if user is empty it will  throw error as response
+                    return res.status(404).json({ message: 'Invalid user' })
+                }
+                updates.forEach((update) => reg[update] = req.body[update]) //updating the value
+        
+                await reg.save()
+                res.send(reg)
+            } catch (error) {
+                res.status(400).send(error)
             }
-
-        }
-    ).catch(err => {
-        res.status(400).json({
-            message: "no Reservations found found",
-            status: "failed",
-            error: err
-        })
-    })
-})
-router.put('/updateAvgRate/:RestaurantCode', async (req, res) => {
-    const updates = Object.keys(req.body)   // keys will be stored in updates => req body field names.
-    const allowedUpdates = ['totalAvgRating', 'superAdminAccept', 'Query']  // updates that are allowed
-    const isValidOperation = updates.every((update) => allowedUpdates.includes(update)) // validating the written key in req.body with the allowedUpdates
-    if (!isValidOperation) {
-        return res.status(400).json({ error: 'invalid updates' })
-    }
-    try {  // try  catch error is to catch the errors in process
-        const reg = await Register.findOne({ _id: req.params.id }) // finding the product to be updated
-        if (!reg) { //if user is empty it will  throw error as response
-            return res.status(404).json({ message: 'Invalid user' })
-        }
-        updates.forEach((update) => reg[update] = req.body[update]) //updating the value
-
-        await reg.save()
-        res.send(reg)
-    } catch (error) {
-        res.status(400).send(error)
-    }
-});
+        });
 
 async function sendnotificationforadmin(Name, mess, uniqId) {
     console.log(uniqId)
@@ -1055,23 +1047,20 @@ async function sendnotificationforadmin(Name, mess, uniqId) {
 
 }
 
-router.post('/updateTablescount', (req, res, next) => {
-
-    var query = { "RestaurantCode": req.body.RestaurantCode }
-    var update = { $set: { "Bookedtables": req.body.Bookedtables } }
-
-    Restaurant.findOneAndUpdate(query, update).select().exec().then(
-        doc => {
-            console.log(doc)
-            res.status(200).json({
-                message: doc,
-                status: "success"
+        router.post('/updateTablescount', (req,res,next)=>{
+            
+            var query= {"RestaurantCode":req.body.RestaurantCode}
+            var update ={$set:{"Bookedtables":req.body.Bookedtables}}
+        
+            Restaurant.findOneAndUpdate(query,update).select().exec().then(
+                doc=>{
+                    console.log(doc)
+                    res.status(200).json({
+                        message:doc,
+                        status:"success"
+                    })
+                })
             })
-        })
-})
-
-
-
 
 router.get('/calculatedistance/:lat/:lon', (req, res) => {
     const { lat, lon } = req.params; // Get your current location
