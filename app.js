@@ -5,6 +5,7 @@ const cors = require("cors");
 
 // const userRoutes = require('./routes/userRoutes')
 const api = require('./routes/userRoutes')
+const business = require('./routes/Createbusiness')
 
 const app = express();
 app.use(bodyParser.json());
@@ -13,7 +14,7 @@ app.use(cors());
 const port = 3000;
 
 // MongoDB connection URL
-const dbUrl = "mongodb+srv://KomarajuBablu:Honeybablu1772@cluster0.zktypoh.mongodb.net/VIPMEAPP?retryWrites=true&w=majority";
+const dbUrl = "mongodb+srv://tarakeshkostu:tarakeshkostu@cluster0.oklqzax.mongodb.net/?retryWrites=true&w=majority";
 
 // Connecting to MongoDB
 const connectToDatabase = async () => {
@@ -32,3 +33,4 @@ app.listen(port, () => {
 });
 
 app.use('/', api);
+app.use('/', business);
