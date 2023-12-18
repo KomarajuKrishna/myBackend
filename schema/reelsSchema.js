@@ -13,7 +13,8 @@ const ObjectID = mongoose.Schema.Types.ObjectId
       location:{typel:String},
       share:{type:String},
       Fullname:{type:String},
-  
+      url: {type: String},
+      mediaType: {type: String},
       likes: {
         type: Number,
         default: 0

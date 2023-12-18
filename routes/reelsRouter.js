@@ -15,6 +15,8 @@ AWS.config.update({
 const storage = multer.memoryStorage(); 
 const upload = multer({ storage: storage });
 
+
+//Uploading  media 
 router.post('/media', upload.single('media'), async (req, res) => {
   try {
     if (!req.file) {
@@ -41,13 +43,17 @@ router.post('/media', upload.single('media'), async (req, res) => {
 
     const s3UploadResponse = await s3.upload(uploadParams).promise();
     const mediaLocation = s3UploadResponse.Location;
+    const type = isVideo ? 'video' : 'image'
+    console.log(type)
 
     console.log(`${isVideo ? 'Video' : 'Image'} uploaded to:`, mediaLocation);
 
     // Creating the Media object with the mediaLocation 
     const mediaDetails = new reelsdetails({
       media: mediaLocation,
+      url: mediaLocation,
       type: isVideo ? 'video' : 'image',
+      mediaType: type,
       // Other fields from your request body
       // Example:
       // mobile: req.body.mobile,
@@ -65,6 +71,18 @@ router.post('/media', upload.single('media'), async (req, res) => {
   } catch (error) {
     console.error('Error handling file upload or saving metadata:', error);
     res.status(500).json({ error: 'Failed to process file upload or save metadata' });
+  }
+});
+
+// Get all media 
+router.get('/media', async (req, res) => {
+  try {
+    const allMedia = await reelsdetails.find(); 
+
+    res.json(allMedia);
+  } catch (error) {
+    console.error('Error retrieving media:', error);
+    res.status(500).json({ error: 'Failed to retrieve media' });
   }
 });
 
