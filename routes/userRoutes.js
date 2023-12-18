@@ -12,6 +12,82 @@ const jwt = require('jsonwebtoken');
 // const JWT_SECRET = '798fgu46098jhvug5889uuy';
 // const OneSignal = require('@onesignal/node-onesignal')
 
+
+//login
+
+router.post('/logindetails', async (req, res, next) => {
+    try {
+      const mobile = req.body.mobile;
+      const password = req.body.password;
+  
+      const user = await Register.findOne({ mobile: mobile }).select().exec();
+  
+      if (!user || password !== user.password) {
+        return res.status(401).json({
+          message: "Authentication failed",
+        });
+      }
+  
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user._id, mobile: user.mobile },
+        'your_secret_key', // Replace with your own secret key
+        { expiresIn: '1h' } // Token expiration time
+      );
+  
+      res.status(200).json({
+        message: "Authentication successful",
+        token: token,
+        data: user,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        message: "Internal server error",
+      });
+    }
+  });
+  
+  // //registration
+
+  router.post('/Register', async (req, res) => {
+    try {
+      const newSignup = new Register({
+        Fullname: req.body.Fullname,
+        Email: req.body.Email,
+        mobile: req.body.mobile,
+        Role: req.body.Role,
+        password: req.body.password
+      });
+  
+      // Check if user already exists
+      const existingUser = await Register.findOne({ mobile: req.body.mobile });
+  
+      if (existingUser === null) {
+        // If no user found, create a new user
+        const result = await newSignup.save();
+  
+        res.status(200).json({
+          message: "User signed up successfully",
+          status: "success",
+          user: result
+        });
+      } else {
+        // User already exists
+        res.status(400).json({
+          message: "User already exists",
+          status: "failed"
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        error: error.message,
+        status: "failed"
+      });
+    }
+  });
+
 router.get('/getsignupdetails', async (req, res) => {
     try {
         const sinInfo = await Register.find()
@@ -406,9 +482,41 @@ async function comparePasswords(enteredPassword, hashedPassword) {
   });
 
 
-router.post('/register', async (req, res) => {
+// router.post('/register', async (req, res) => {
+//     try {
+//       const { mobile, password,Fullname,Email ,Role} = req.body;
+//       const userexist = await Register.findOne({ mobile });
+  
+//       if (userexist) {
+//         return res.status(401).json({
+//             status:'exist',
+//              error: 'User exist found' });
+//       }
+//       const saltRounds = 10;
+//       const hashedPassword = await bcrypt.hash(password, saltRounds);
+  
+//       const user = new Register({
+//         mobile,
+//         password: hashedPassword,
+//         Fullname,
+//         Email,
+//         Role
+//       });
+  
+//       await user.save();
+//       res.status(201).json({
+//         status:"success",
+//          message: 'User registered successfully' });
+//     } catch (error) {
+//       res.status(500).json({ 
+//         status:"failed",
+//         error: 'Internal server error' });
+//     }
+//   });
+
+  router.post('/register', async (req, res) => {
     try {
-      const { mobile, password,Fullname,Email ,Role} = req.body;
+      const { mobile, Fullname,Email ,Role} = req.body;
       const userexist = await Register.findOne({ mobile });
   
       if (userexist) {
@@ -417,11 +525,11 @@ router.post('/register', async (req, res) => {
              error: 'User exist found' });
       }
       const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
+    //   const hashedPassword = await bcrypt.hash(password, saltRounds);
   
       const user = new Register({
         mobile,
-        password: hashedPassword,
+        // password: hashedPassword,
         Fullname,
         Email,
         Role
@@ -437,7 +545,6 @@ router.post('/register', async (req, res) => {
         error: 'Internal server error' });
     }
   });
-
 router.get('/getSignUpById/:id',async(req,res)=>{ 
     Register.find({"_id":req.params.id}).select().exec().then(
         doc => {

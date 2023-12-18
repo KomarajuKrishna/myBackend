@@ -5,6 +5,7 @@ const cors = require("cors");
 
 const userRoutes = require('./routes/userRoutes')
 const restaurantRoutes = require('./routes/restaurantRoutes')
+const business = require('./routes/Createbusiness')
 const reelsRouter = require('./routes/reelsRouter')
 
 const app = express();
@@ -35,3 +36,4 @@ app.listen(port, () => {
 app.use('/', userRoutes);
 app.use('/', restaurantRoutes);
 app.use('/', reelsRouter)
+app.use('/', business);
