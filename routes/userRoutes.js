@@ -5,6 +5,7 @@ const mongoose = require('mongoose')
 const Register = require('../schema/registerSchema')
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+// const jwtMiddleware = require('./jwt')
 // const nodemailer = require('nodemailer')
 // const bodyparser = require('body-parser')
 // const Register = require('../Models/register')
@@ -17,76 +18,94 @@ const jwt = require('jsonwebtoken');
 
 router.post('/logindetails', async (req, res, next) => {
     try {
-      const mobile = req.body.mobile;
-      const password = req.body.password;
-  
-      const user = await Register.findOne({ mobile: mobile }).select().exec();
-  
-      if (!user || password !== user.password) {
-        return res.status(401).json({
-          message: "Authentication failed",
-        });
-      }
-  
-      // Generate JWT token
-      const token = jwt.sign(
-        { userId: user._id, mobile: user.mobile },
-        'your_secret_key', // Replace with your own secret key
-        { expiresIn: '1h' } // Token expiration time
-      );
-  
-      res.status(200).json({
-        message: "Authentication successful",
-        token: token,
-        data: user,
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({
-        message: "Internal server error",
-      });
-    }
-  });
-  
-  // //registration
+        const mobile = req.body.mobile;
+        const password = req.body.password;
 
-  router.post('/Register', async (req, res) => {
-    try {
-      const newSignup = new Register({
-        Fullname: req.body.Fullname,
-        Email: req.body.Email,
-        mobile: req.body.mobile,
-        Role: req.body.Role,
-        password: req.body.password
-      });
-  
-      // Check if user already exists
-      const existingUser = await Register.findOne({ mobile: req.body.mobile });
-  
-      if (existingUser === null) {
-        // If no user found, create a new user
-        const result = await newSignup.save();
-  
+        const user = await Register.findOne({ mobile: mobile }).select().exec();
+
+        if (!user || password !== user.password) {
+            return res.status(401).json({
+                message: "Authentication failed",
+            });
+        }
+
+        // Generate JWT token
+        const token = jwt.sign(
+            { userId: user._id, mobile: user.mobile },
+            'your_secret_key', // Replace with your own secret key
+            { expiresIn: '1h' } // Token expiration time
+        );
+
         res.status(200).json({
-          message: "User signed up successfully",
-          status: "success",
-          user: result
+            message: "Authentication successful",
+            token: token,
+            data: user,
         });
-      } else {
-        // User already exists
-        res.status(400).json({
-          message: "User already exists",
-          status: "failed"
-        });
-      }
     } catch (error) {
-      console.error(error);
-      res.status(500).json({
-        error: error.message,
-        status: "failed"
-      });
+        console.error(error);
+        res.status(500).json({
+            message: "Internal server error",
+        });
     }
-  });
+});
+
+router.delete('/deletetodos/:id', (req, res) => {
+    Register.findByIdAndDelete(req.params.id)  //params means parameter value
+        .then(() => res.json('user deleted'))
+        .catch(err => res.status(400).json(`Error: ${err}`));
+
+})
+
+router.get('/getsignup', async (req, res) => {  //// async makes a function return a Promise
+    try {
+        const signup = await Register.find({})
+        //await makes a function wait for a Promise
+        res.status(200).json({ signup })
+    } catch (error) {
+        res.status(400).send(error)
+        console.log(error)
+    }
+})
+
+// //registration
+
+router.post('/Register', async (req, res) => {
+    try {
+        const newSignup = new Register({
+            Fullname: req.body.Fullname,
+            Email: req.body.Email,
+            mobile: req.body.mobile,
+            Role: req.body.Role,
+            password: req.body.password
+        });
+
+        // Check if user already exists
+        const existingUser = await Register.findOne({ mobile: req.body.mobile });
+
+        if (existingUser === null) {
+            // If no user found, create a new user
+            const result = await newSignup.save();
+
+            res.status(200).json({
+                message: "User signed up successfully",
+                status: "success",
+                user: result
+            });
+        } else {
+            // User already exists
+            res.status(400).json({
+                message: "User already exists",
+                status: "failed"
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            error: error.message,
+            status: "failed"
+        });
+    }
+});
 
 router.get('/getsignupdetails', async (req, res) => {
     try {
@@ -102,13 +121,13 @@ router.get('/getsignupdetails', async (req, res) => {
 })
 
 
-router.get('/getbymobile/:mobile',async(req,res)=>{ 
-    Register.find({"mobile":req.params.mobile}).select().exec().then(
+router.get('/getbymobile/:mobile', async (req, res) => {
+    Register.find({ "mobile": req.params.mobile }).select().exec().then(
         doc => {
             console.log(doc)
             if (doc.length) {
                 res.status(200).json({
-                    Loads:doc.length,
+                    Loads: doc.length,
                     data: doc,
                     message: "Matching found",
                     status: "success"
@@ -142,46 +161,101 @@ router.get('/getbymobile/:mobile',async(req,res)=>{
 //   ],
 // });
 
+// router.post('/login', (req, res, next) => {
+//     const mobile = req.body.mobile;
+//     const password = req.body.password;
 
+//     // Find the user by mobile number
+//     Register.findOne({ mobile: mobile }).select().exec().then(async user => {
+//         if (!user) {
+//             // If user not found
+//             return res.status(400).json({
+//                 message: 'User not found',
+//                 status: 'failed'
+//             });
+//         }
 
-router.post('/getsignup', (req, res, next)=>{
-       
-     var mobileNo=req.body.mobile;
-      console.log(mobileNo)
+//         // Compare the provided password with the hashed password stored in the database
+//         const passwordMatch = await bcrypt.compare(password, user.password);
 
-      Register.findOne({mobile:mobileNo}).select().exec().then( doc => {
-    
-      var user  = req.body.mobile;
-      if(doc == null || doc == undefined || doc ==''){
-        res.status(400).json({ 
-            Authentication: 'User not exist',
-            message:'failed'
-        })
-      }
-    
-      else if(user == doc.mobile){
-        console.log(user)
-        const token = jwtMiddleware.generateToken(user.mobile);
-        logger.info(token)
-     const refreshToken = jwtMiddleware.generateRefreshToken(user.mobile);
-         logger.info(refreshToken)
-        res.status(200).json({
-            Authentication: doc._id,
-            message: "Success",
-            userProfile:doc,token,refreshToken
-        })
-      }
-        else{ 
-            res.status(400).json({ 
+//         if (passwordMatch) {
+//             // If passwords match, generate JWT token
+//             const token = jwt.sign({ mobile: user.mobile }, 'yourSecretKey', { expiresIn: '1h' });
+
+//             res.status(200).json({
+//                 message: 'Login successful',
+//                 status: 'success',
+//                 userProfile: {
+//                     Id: user._id,
+//                     Fullname: user.Fullname,
+//                     Email: user.Email,
+//                     mobile: user.mobile,
+//                     city: user.city,
+//                     About: user.About,
+//                     gender: user.gender,
+//                     country: user.country,
+//                     Address: user.Address,
+//                     state: user.state,
+//                     Role: user.Role,
+//                     password: user.password,
+//                     percentage: user.percentage,
+//                 },
+//                 token,
+//             });
+//         } else {
+//             // If passwords do not match
+//             res.status(401).json({
+//                 message: 'Invalid password',
+//                 status: 'failed'
+//             });
+//         }
+//     }).catch(err => {
+//         console.log(err);
+//         res.status(500).json({
+//             error: err,
+//             status: 'failed'
+//         });
+//     });
+// });
+
+router.post('/getsignup', (req, res, next) => {
+
+    var mobileNo = req.body.mobile;
+    console.log(mobileNo)
+
+    Register.findOne({ mobile: mobileNo }).select().exec().then(doc => {
+
+        var user = req.body.mobile;
+        if (doc == null || doc == undefined || doc == '') {
+            res.status(400).json({
+                Authentication: 'User not exist',
+                message: 'failed'
+            })
+        }
+
+        else if (user == doc.mobile) {
+            console.log(user)
+            const token = jwtMiddleware.generateToken(user.mobile);
+            logger.info(token)
+            const refreshToken = jwtMiddleware.generateRefreshToken(user.mobile);
+            logger.info(refreshToken)
+            res.status(200).json({
+                Authentication: doc._id,
+                message: "Success",
+                userProfile: doc, token, refreshToken
+            })
+        }
+        else {
+            res.status(400).json({
                 Authentication: 'Failed to login ',
-                message:'error'
+                message: 'error'
             });
         }
-     }).catch(err => {
-         console.log(err);
-         res.status(500).json({error: err});
-     }); 
-  });
+    }).catch(err => {
+        console.log(err);
+        res.status(500).json({ error: err });
+    });
+});
 
 // router.post('/addsignupdetails', (req, res, next) => {
 //     console.log("User profile is called")
@@ -246,19 +320,98 @@ router.post('/refresh', (req, res) => {
     const refreshToken = req.body.refreshToken;
     const secretKey = 'cgvhbxdfcvgvvgcfvb';
     jwt.verify(refreshToken, secretKey, (err, user) => {
-      if (err) {
-        return res.sendStatus(403); 
-      }
-  
-      const newAccessToken = jwt.sign({ user: user.user }, secretKey, { expiresIn: '30m' });
-  
-      res.json({ accessToken: newAccessToken });
-    });
-  });
+        if (err) {
+            return res.sendStatus(403);
+        }
 
-router.post('/addsignupdetails', async (req, res, next) => {
+        const newAccessToken = jwt.sign({ user: user.user }, secretKey, { expiresIn: '30m' });
+
+        res.json({ accessToken: newAccessToken });
+    });
+});
+
+// router.post('/addsignupdetails', async (req, res, next) => {
+//     // Fields to consider for percentage calculation
+//     const totalFields = ['mobile', 'Fullname', 'Email', 'city', 'About', 'gender', 'Address', 'Role', 'state', 'country', 'password'];
+//     // Count the number of fields present in the request
+//     let presentFields = 0;
+//     for (const field of totalFields) {
+//         if (req.body[field] !== undefined && req.body[field] !== '') {
+//             presentFields++;
+//         }
+//     }
+//     const percentage = (presentFields / totalFields.length) * 100;
+//     if (req.body.password) {
+//         var hashedPassword = await bcrypt.hash(req.body.password, 10);
+//     } else {
+//         var hashedPassword = ''
+//     }
+
+//     const signup = new Register({
+//         _id: new mongoose.Types.ObjectId(),
+//         mobile: req.body.mobile,
+//         Fullname: req.body.Fullname,
+//         Email: req.body.Email,
+//         city: req.body.city,
+//         About: req.body.About,
+//         gender: req.body.gender,
+//         uniqueid: req.body.uniqueid,
+//         Role: req.body.Role,
+//         password: hashedPassword,
+//         uniqueDeviceId: req.body.uniqueDeviceId,
+//         percentage: percentage,
+//     });
+
+//     var mobile = req.body.mobile;
+//     var Email = req.body.Email;
+//     var uniqueid = req.body.uniqueid;
+
+//     //first check if user is already existed 
+//     Register.findOne({ $or: [{ mobile: mobile }, { Email: Email }] }).select().exec().then(doc => {
+//         console.log(doc)
+
+//         if (!doc) { // If no user found, create a new user
+//             signup.save().then(async result => {
+//                 res.status(200).json({
+//                     message: "User signed up successfully",
+//                     status: "success",
+//                     Id: result._id,
+//                     Fullname: result.Fullname,
+//                     Email: result.Email,
+//                     mobile: result.mobile,
+//                     city: result.city,
+//                     About: result.About,
+//                     gender: result.gender,
+//                     country: result.country,
+//                     Address: result.Address,
+//                     state: result.state,
+//                     Role: result.Role,
+//                     password: result.password,
+//                     percentage: result.percentage,
+//                 });
+
+//             }).catch(err => {
+//                 console.log(err);
+//                 res.status(500).json({
+//                     error: err,
+//                     status: "failed"
+//                 });
+//             });
+//         } else {
+//             res.status(200).json({
+//                 message: "User already exists",
+//                 status: "failed"
+//             });
+//         }
+//     });
+// });
+
+router.post('/addsignupdetails', (req, res, next) => {
+    console.log("User profile is called");
+
     // Fields to consider for percentage calculation
-    const totalFields = ['mobile', 'Fullname', 'Email', 'city', 'About', 'gender', 'Address', 'Role', 'state','country','password'];
+    const totalFields = ['mobile', 'Fullname', 'Email', 'city', 'About', 'gender', 'Address', 'Role', 'state', 'country'];
+
     // Count the number of fields present in the request
     let presentFields = 0;
     for (const field of totalFields) {
@@ -266,12 +419,8 @@ router.post('/addsignupdetails', async (req, res, next) => {
             presentFields++;
         }
     }
+
     const percentage = (presentFields / totalFields.length) * 100;
-    if(req.body.password){
-        var hashedPassword = await bcrypt.hash(req.body.password, 10);
-    }else{
-        var hashedPassword =''
-    }
 
     const signup = new Register({
         _id: new mongoose.Types.ObjectId(),
@@ -283,9 +432,9 @@ router.post('/addsignupdetails', async (req, res, next) => {
         gender: req.body.gender,
         uniqueid: req.body.uniqueid,
         Role: req.body.Role,
-        password:hashedPassword,
         uniqueDeviceId: req.body.uniqueDeviceId,
         percentage: percentage,
+        password: req.body.password
     });
 
     var mobile = req.body.mobile;
@@ -297,7 +446,7 @@ router.post('/addsignupdetails', async (req, res, next) => {
         console.log(doc)
 
         if (!doc) { // If no user found, create a new user
-            signup.save().then(async result => {
+            signup.save().then(result => {
                 res.status(200).json({
                     message: "User signed up successfully",
                     status: "success",
@@ -312,9 +461,9 @@ router.post('/addsignupdetails', async (req, res, next) => {
                     Address: result.Address,
                     state: result.state,
                     Role: result.Role,
+                    password: result.password,
                     percentage: result.percentage,
                 });
-          
             }).catch(err => {
                 console.log(err);
                 res.status(500).json({
@@ -331,13 +480,11 @@ router.post('/addsignupdetails', async (req, res, next) => {
     });
 });
 
-
-
 router.put('/editProfile/:id', (req, res, next) => {
     const id = req.params.id; // Extract the document ID from the request params
 
     // Fields to consider for percentage calculation
-    const totalFields = ['mobile', 'Fullname', 'Email', 'city', 'About', 'gender', 'Address', 'Role', 'state','country','uniqueDeviceId'];
+    const totalFields = ['mobile', 'Fullname', 'Email', 'city', 'About', 'gender', 'Address', 'Role', 'state', 'country'];
 
     // Find the existing document in the MongoDB collection
     Register.findById(id)
@@ -409,84 +556,167 @@ router.put('/editProfile/:id', (req, res, next) => {
         });
 });
 
+
+// router.put('/editProfile/:id', (req, res, next) => {
+//     const id = req.params.id; // Extract the document ID from the request params
+
+//     // Fields to consider for percentage calculation
+//     const totalFields = ['mobile', 'Fullname', 'Email', 'city', 'About', 'gender', 'Address', 'Role', 'state', 'country', 'password', 'uniqueDeviceId'];
+
+//     // Find the existing document in the MongoDB collection
+//     Register.findById(id)
+//         .then(existingDoc => {
+//             if (!existingDoc) {
+//                 return res.status(404).json({
+//                     message: "User not found",
+//                     status: "failed"
+//                 });
+//             }
+
+//             // Merge the existing data with the new data from the request body
+//             const updatedData = { ...existingDoc.toObject(), ...req.body };
+
+//             // Count the number of fields present in the merged data
+//             let presentFields = 0;
+//             for (const field of totalFields) {
+//                 if (updatedData[field] !== undefined && updatedData[field] !== '') {
+//                     presentFields++;
+//                 }
+//             }
+
+//             const percentage = (presentFields / totalFields.length) * 100;
+
+//             // Update the percentage in the merged data
+//             updatedData.percentage = percentage;
+
+//             // Update the document in the MongoDB collection
+//             Register.findByIdAndUpdate(id, updatedData, { new: true })
+//                 .then(updatedDoc => {
+//                     if (!updatedDoc) {
+//                         return res.status(404).json({
+//                             message: "User not found",
+//                             status: "failed"
+//                         });
+//                     }
+
+//                     res.status(200).json({
+//                         message: "User details updated successfully",
+//                         status: "success",
+//                         Id: updatedDoc._id,
+//                         Fullname: updatedDoc.Fullname,
+
+//                         Email: updatedDoc.Email,
+//                         mobile: updatedDoc.mobile,
+//                         city: updatedDoc.city,
+//                         About: updatedDoc.About,
+//                         gender: updatedDoc.gender,
+//                         country: updatedDoc.country,
+//                         Address: updatedDoc.Address,
+//                         state: updatedDoc.state,
+//                         Role: updatedDoc.Role,
+//                         password: updatedDoc.password,
+//                         percentage: updatedDoc.percentage,
+//                     });
+//                 })
+//                 .catch(err => {
+//                     console.log(err);
+//                     res.status(500).json({
+//                         error: err,
+//                         status: "failed"
+//                     });
+//                 });
+//         })
+//         .catch(err => {
+//             console.log(err);
+//             res.status(500).json({
+//                 error: err,
+//                 status: "failed"
+//             });
+//         });
+// });
+
 router.post('/login', async (req, res) => {
     try {
-      const { mobile, password } = req.body;
-      const user = await Register.findOne({ mobile });
-  
-      if (!user) {
-        return res.status(401).json({
-            status:'failed',
-            error: 'User not found' });
-      }
-  
-  
-async function comparePasswords(enteredPassword, hashedPassword) {
-    try {
-      const passwordMatch = await bcrypt.compare(enteredPassword, hashedPassword);
-      return passwordMatch;
-    } catch (error) {
-      // Handle any errors that may occur during the comparison
-      res.status(401).json({ 
-        status:"invalid",
-        error: 'Invalid password' });
-    }
-  }
-  
-  // Example usage
-  const enteredPassword = password; // Replace with the user-entered password
-  const hashedPassword = user.password; // Replace with the hashed password from your database
-  
-  comparePasswords(enteredPassword, hashedPassword)
-    .then((passwordMatch) => {
-        console.log(passwordMatch)
-      if (passwordMatch) {
-        const token = jwtMiddleware.generateToken(user.mobile,user.Role);
-        logger.info(token)
-     const refreshToken = jwtMiddleware.generateRefreshToken(user.mobile,user.Role);
-         logger.info(refreshToken)
-         res.json({
-        status:"success",
-        user,
-        token, refreshToken });
-      } else {
-        res.status(401).json({ 
-                     status:"invalid",
-                     error: 'Invalid password' });
-      }
-    })
-    .catch((error) => {
-      console.error(error);
-    });
+        const { mobile, password } = req.body;
+        const user = await Register.findOne({ mobile });
+
+        if (!user) {
+            return res.status(401).json({
+                status: 'failed',
+                error: 'User not found'
+            });
+        }
 
 
-    //   const passwordMatch =  bcrypt.compare(password, user.password);
-  
-    //   if (!passwordMatch) {
-    //     return res.status(401).json({ 
-    //         status:"invalid",
-    //         error: 'Invalid password' });
-    //   }
-  
-    //   const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
-    //     expiresIn: '1h',
-    //   });
-  
-    //   res.json({
-    //     status:"success",
-    //     user,
-    //      token });
+        async function comparePasswords(enteredPassword, hashedPassword) {
+            try {
+                const passwordMatch = await bcrypt.compare(enteredPassword, hashedPassword);
+                return passwordMatch;
+            } catch (error) {
+                // Handle any errors that may occur during the comparison
+                res.status(401).json({
+                    status: "invalid",
+                    error: 'Invalid password'
+                });
+            }
+        }
+
+        // Example usage
+        const enteredPassword = password; // Replace with the user-entered password
+        const hashedPassword = user.password; // Replace with the hashed password from your database
+
+        comparePasswords(enteredPassword, hashedPassword)
+            .then((passwordMatch) => {
+                console.log(passwordMatch)
+                if (passwordMatch) {
+                    const token = jwtMiddleware.generateToken(user.mobile, user.Role);
+                    logger.info(token)
+                    const refreshToken = jwtMiddleware.generateRefreshToken(user.mobile, user.Role);
+                    logger.info(refreshToken)
+                    res.json({
+                        status: "success",
+                        user,
+                        token, refreshToken
+                    });
+                } else {
+                    res.status(401).json({
+                        status: "invalid",
+                        error: 'Invalid password'
+                    });
+                }
+            })
+            .catch((error) => {
+                console.error(error);
+            });
+
+
+        //   const passwordMatch =  bcrypt.compare(password, user.password);
+
+        //   if (!passwordMatch) {
+        //     return res.status(401).json({ 
+        //         status:"invalid",
+        //         error: 'Invalid password' });
+        //   }
+
+        //   const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
+        //     expiresIn: '1h',
+        //   });
+
+        //   res.json({
+        //     status:"success",
+        //     user,
+        //      token });
     } catch (error) {
-      res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error' });
     }
-  });
+});
 
 
 // router.post('/register', async (req, res) => {
 //     try {
 //       const { mobile, password,Fullname,Email ,Role} = req.body;
 //       const userexist = await Register.findOne({ mobile });
-  
+
 //       if (userexist) {
 //         return res.status(401).json({
 //             status:'exist',
@@ -494,7 +724,7 @@ async function comparePasswords(enteredPassword, hashedPassword) {
 //       }
 //       const saltRounds = 10;
 //       const hashedPassword = await bcrypt.hash(password, saltRounds);
-  
+
 //       const user = new Register({
 //         mobile,
 //         password: hashedPassword,
@@ -502,7 +732,7 @@ async function comparePasswords(enteredPassword, hashedPassword) {
 //         Email,
 //         Role
 //       });
-  
+
 //       await user.save();
 //       res.status(201).json({
 //         status:"success",
@@ -514,49 +744,53 @@ async function comparePasswords(enteredPassword, hashedPassword) {
 //     }
 //   });
 
-  router.post('/register', async (req, res) => {
+router.post('/register', async (req, res) => {
     try {
-      const { mobile, Fullname,Email ,Role} = req.body;
-      const userexist = await Register.findOne({ mobile });
-  
-      if (userexist) {
-        return res.status(401).json({
-            status:'exist',
-             error: 'User exist found' });
-      }
-      const saltRounds = 10;
-    //   const hashedPassword = await bcrypt.hash(password, saltRounds);
-  
-      const user = new Register({
-        mobile,
-        // password: hashedPassword,
-        Fullname,
-        Email,
-        Role
-      });
-  
-      await user.save();
-      res.status(201).json({
-        status:"success",
-         message: 'User registered successfully' });
+        const { mobile, Fullname, Email, Role } = req.body;
+        const userexist = await Register.findOne({ mobile });
+
+        if (userexist) {
+            return res.status(401).json({
+                status: 'exist',
+                error: 'User exist found'
+            });
+        }
+        const saltRounds = 10;
+        //   const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+        const user = new Register({
+            mobile,
+            // password: hashedPassword,
+            Fullname,
+            Email,
+            Role
+        });
+
+        await user.save();
+        res.status(201).json({
+            status: "success",
+            message: 'User registered successfully'
+        });
     } catch (error) {
-      res.status(500).json({ 
-        status:"failed",
-        error: 'Internal server error' });
+        res.status(500).json({
+            status: "failed",
+            error: 'Internal server error'
+        });
     }
-  });
-router.get('/getSignUpById/:id',async(req,res)=>{ 
-    Register.find({"_id":req.params.id}).select().exec().then(
+});
+router.get('/getSignUpById/:id', async (req, res) => {
+    Register.find({ "_id": req.params.id }).select().exec().then(
         doc => {
             console.log(doc)
-            for(let i=0; i<doc.length;i++){
-                var data =doc[i].profileImage
+            for (let i = 0; i < doc.length; i++) {
+                var data = doc[i].profileImage
             }
             if (doc) {
                 res.status(200).json({
-                    profile:data,
+                    profile: data,
                     message: "Matching found",
-                    status: "success"
+                    status: "success",
+                    doc: doc
                 })
             } else {
                 res.status(400).json({
@@ -580,282 +814,284 @@ router.get('/getSignUpById/:id',async(req,res)=>{
 
 async function sendnotificationforplacebid(mess, Name, BidPrice, uniqId) {
     console.log(uniqId)
-              const ONESIGNAL_APP_ID = '74400711-bf20-47f8-9204-ca2f9b677e7f';
-            
-              const app_key_provider = {
-                  getToken() {
-                      return 'MGRiYjM0Y2YtMmMzYS00YTg3LWFhM2EtODQwODVkOWRkMzc3';
-                  }
-              };
-            
-              const configuration = OneSignal.createConfiguration({
-                  authMethods: {
-                      app_key: {
-                          tokenProvider: app_key_provider
-                      }
-                  }
-              });
-              const client = new OneSignal.DefaultApi(configuration);
-            
-              const notification = new OneSignal.Notification();
-              notification.app_id = ONESIGNAL_APP_ID;
-              //notification.included_segments = ['Subscribed Users'];
-              //notification.include_external_user_ids=["86744b78-55c9-42a7-92ee-5d93e1434d2b"];
-              notification.include_external_user_ids = [uniqId];
-              notification.contents = {
-                  en: 'narayan' + " " + 'posted' 
-              };
-              const { id } = await client.createNotification(notification);
-            
-              const response = await client.getNotification(ONESIGNAL_APP_ID, id);
-              console.log(response)
-              //res.json(response)
-            
+    const ONESIGNAL_APP_ID = '74400711-bf20-47f8-9204-ca2f9b677e7f';
+
+    const app_key_provider = {
+        getToken() {
+            return 'MGRiYjM0Y2YtMmMzYS00YTg3LWFhM2EtODQwODVkOWRkMzc3';
+        }
+    };
+
+    const configuration = OneSignal.createConfiguration({
+        authMethods: {
+            app_key: {
+                tokenProvider: app_key_provider
+            }
+        }
+    });
+    const client = new OneSignal.DefaultApi(configuration);
+
+    const notification = new OneSignal.Notification();
+    notification.app_id = ONESIGNAL_APP_ID;
+    //notification.included_segments = ['Subscribed Users'];
+    //notification.include_external_user_ids=["86744b78-55c9-42a7-92ee-5d93e1434d2b"];
+    notification.include_external_user_ids = [uniqId];
+    notification.contents = {
+        en: 'narayan' + " " + 'posted'
+    };
+    const { id } = await client.createNotification(notification);
+
+    const response = await client.getNotification(ONESIGNAL_APP_ID, id);
+    console.log(response)
+    //res.json(response)
+
+}
+
+
+async function sendnotificationforplacebid(mess, Name, BidPrice, uniqId) {
+    console.log(uniqId)
+    const ONESIGNAL_APP_ID = 'b565b895-f2bd-4be3-b40f-99a29750c39e';
+
+    const app_key_provider = {
+        getToken() {
+            return 'MDczYjQwZTEtOGQ4Ni00MWMxLTk1ODYtMjEyMWU2ZjZhZTcy';
+        }
+    };
+
+    const configuration = OneSignal.createConfiguration({
+        authMethods: {
+            app_key: {
+                tokenProvider: app_key_provider
+            }
+        }
+    });
+    const client = new OneSignal.DefaultApi(configuration);
+
+    const notification = new OneSignal.Notification();
+    notification.app_id = ONESIGNAL_APP_ID;
+    //notification.included_segments = ['Subscribed Users'];
+    //notification.include_external_user_ids=["86744b78-55c9-42a7-92ee-5d93e1434d2b"];
+    notification.include_external_user_ids = [uniqId];
+    notification.contents = {
+        en: Name + " " + mess + " " + BidPrice
+    };
+    const { id } = await client.createNotification(notification);
+
+    const response = await client.getNotification(ONESIGNAL_APP_ID, id);
+    console.log(response)
+    //res.json(response)
+
+}
+
+
+
+router.post('/followers', (req, res, next) => {
+
+
+    var query = { "_id": req.body._id }
+
+
+    var Rest = {
+        $push: {
+            "followers": {
+                "mobile": req.body.mobile,
+                "Fullname": req.body.Fullname,
+                "profileImage": req.body.profileImage
+
+                // "profileImage": req.body.profileImage, 
+            }
+        },
+    }
+
+    console.log(Rest)
+    console.log(query)
+
+    Register.findOneAndUpdate(query, Rest).select().exec().then(
+        doc => {
+
+
+            if (doc) {
+
+                res.status(200).json({
+                    data: doc,
+                    message: "got the matching loads based on the profile",
+                    status: "success"
+                })
+
+
+            } else {
+                res.status(400).json({
+                    message: "no matching docs found",
+                    status: "no docs"
+                })
+
             }
 
-
-            async function sendnotificationforplacebid(mess, Name, BidPrice, uniqId) {
-                console.log(uniqId)
-               const ONESIGNAL_APP_ID = 'b565b895-f2bd-4be3-b40f-99a29750c39e';
-             
-               const app_key_provider = {
-                   getToken() {
-                       return 'MDczYjQwZTEtOGQ4Ni00MWMxLTk1ODYtMjEyMWU2ZjZhZTcy';
-                   }
-               };
-             
-               const configuration = OneSignal.createConfiguration({
-                   authMethods: {
-                       app_key: {
-                           tokenProvider: app_key_provider
-                       }
-                   }
-               });
-               const client = new OneSignal.DefaultApi(configuration);
-             
-               const notification = new OneSignal.Notification();
-               notification.app_id = ONESIGNAL_APP_ID;
-               //notification.included_segments = ['Subscribed Users'];
-               //notification.include_external_user_ids=["86744b78-55c9-42a7-92ee-5d93e1434d2b"];
-               notification.include_external_user_ids = [uniqId];
-               notification.contents = {
-                   en: Name + " " + mess + " " + BidPrice
-               };
-               const { id } = await client.createNotification(notification);
-             
-               const response = await client.getNotification(ONESIGNAL_APP_ID, id);
-               console.log(response)
-               //res.json(response)
-             
-             }
-
-
-
-             router.post('/followers', (req, res, next)=>{
-    
-        
-                var query= {"_id":req.body._id} 
-             
-      
-                 var Rest={$push:{ "followers":{
-                               "mobile":req.body.mobile,
-                               "Fullname":req.body.Fullname,
-                               "profileImage":req.body.profileImage
-                             
-                                // "profileImage": req.body.profileImage, 
-                              }
-                              },
-                              }
-          
-                 console.log(Rest)
-                 console.log(query)
-                
-                 Register.findOneAndUpdate(query,Rest).select().exec().then(
-              doc=>{
-          
-              
-                if(doc){
-                          
-                  res.status(200).json({
-                      data: doc,
-                      message:"got the matching loads based on the profile",
-                      status:"success"
-                  })
-                
-                
-              }else{
-                  res.status(400).json({
-                      message:"no matching docs found",
-                      status:"no docs"
-                  })
-          
-              }
-          
-              }
-          ).catch(err=>{
-              res.status(400).json({
-                  message:"failed to bid",
-                  status: "failed",
-                  error:err
-              })
-             
-              
-              }) 
-          })
-
-
-
-         
-    router.get('/getfollowers/:mobile', async(req,res)=>{ 
-        Register.find({"mobile":req.params.mobile}).select().exec().then(
-            doc => {
-                console.log(doc)
-                if (doc) {
-                    res.status(200).json({
-                        data: doc,
-                        Loads:doc.length,
-                       
-                        message: "Matching found",
-                        status: "success"
-                    })
-                } else {
-                    res.status(400).json({
-                        message: "Matching not found",
-                        status: "no docs"
-                    })
-    
-                }
-            }
-        ).catch(err => {
-            res.status(400).json({
-                message: "failed to get Code",
-                status: "failed",
-                error: err
-            })
+        }
+    ).catch(err => {
+        res.status(400).json({
+            message: "failed to bid",
+            status: "failed",
+            error: err
         })
-    
+
+
     })
-    
-    
+})
 
-    router.get('/getfollowers/:mobile', async(req,res)=>{ 
-        Register.find({"mobile":req.params.mobile}).select().exec().then(
-            doc => {
-                console.log(doc)
-                if (doc) {
-                    res.status(200).json({
-                        data: doc,
-                        Loads:doc.length,
-                       
-                        message: "Matching found",
-                        status: "success"
-                    })
-                } else {
-                    res.status(400).json({
-                        message: "Matching not found",
-                        status: "no docs"
-                    })
-    
-                }
+
+
+
+router.get('/getfollowers/:mobile', async (req, res) => {
+    Register.find({ "mobile": req.params.mobile }).select().exec().then(
+        doc => {
+            console.log(doc)
+            if (doc) {
+                res.status(200).json({
+                    data: doc,
+                    Loads: doc.length,
+
+                    message: "Matching found",
+                    status: "success"
+                })
+            } else {
+                res.status(400).json({
+                    message: "Matching not found",
+                    status: "no docs"
+                })
+
             }
-        ).catch(err => {
-            res.status(400).json({
-                message: "failed to get Code",
-                status: "failed",
-                error: err
-            })
+        }
+    ).catch(err => {
+        res.status(400).json({
+            message: "failed to get Code",
+            status: "failed",
+            error: err
         })
-    
-    }) 
-    // router.post('/deletefollower', jwtMiddleware.verifyToken,async (req, res) => {
-    //     try {
-    //       const id = req.body.id; // The document ID
-    //       const index = req.body.mobile// The index number of the element to delete
-    //  // console.log(index)
-    //   console.log(id)
-    //       // Find the document by ID
-    // //       const document = await Register.findById(id);
-      
-    // //       if (!document) {
-    // //         return res.status(404).json({ message: 'Document not found' });
-    // //       }
-    // //   console.log(document)
-    //       // Check if the index is valid
-    //     //   if (index >= 0 && index < document.followers.length) {
-    //     //     // Remove the element from the array
-    //     //     // document.followers.splice(index, 1);
-            
-    //     //     // Save the updated document
-    //     //     await document.save();
-      
-    //     //     res.json({ message: 'Element deleted successfully' });
-    //     //   } else {
-    //     //     res.status(400).json({ message: 'Invalid index number' });
-    //     //   }
-        
-    //     Register.updateOne( {_id:id},{ $pull: { followers: { mobile: index } } })  //params means parameter value
-    //       .then((data) => {
-           
-    //            // sendnotificationforplacebid( req.body.Name,req.body.mess, uniqId)
-    //             res.json(data)
-    //       })
-    //       .catch(err => res.status(400).json(Error: ${err}));
-    //   }
-    //      catch (error) {
-    //       res.status(500).json({ message: 'Server error' });
-    //     }
-    //   });
+    })
+
+})
 
 
-    // router.post('/deletefollower', (req, res, next)=>{
-    //     console.log(req.body._id)
-    //     console.log(req.body.mobile)
-    //     Register.findOneAndDelete({ "_id":req.body._id,"followers.$.mobile":req.body.mobile}).select().exec().then(doc=>{
-    //          console.log(doc);
-    
-    //         //accessing particular bids of that user truker only bids accessed here 
-          
-    //         if(doc){
-            
-             
-    
-    
-    
-    //         //console.log(tempData);
-    //         res.status(200).json({
-    //             status:"success",
-    //             message: "found the bids",
-    //             data:doc,
-    //             count:doc.length
-    //         })
-    //     }else{
-    //         res.status(400).json({
-    //             status:"failed",
-    //             message:"no bids found"
-    //         })
-    //     }
-    
-    
-    
-    //     })
-    // })
+
+router.get('/getfollowers/:mobile', async (req, res) => {
+    Register.find({ "mobile": req.params.mobile }).select().exec().then(
+        doc => {
+            console.log(doc)
+            if (doc) {
+                res.status(200).json({
+                    data: doc,
+                    Loads: doc.length,
+
+                    message: "Matching found",
+                    status: "success"
+                })
+            } else {
+                res.status(400).json({
+                    message: "Matching not found",
+                    status: "no docs"
+                })
+
+            }
+        }
+    ).catch(err => {
+        res.status(400).json({
+            message: "failed to get Code",
+            status: "failed",
+            error: err
+        })
+    })
+
+})
+// router.post('/deletefollower', jwtMiddleware.verifyToken,async (req, res) => {
+//     try {
+//       const id = req.body.id; // The document ID
+//       const index = req.body.mobile// The index number of the element to delete
+//  // console.log(index)
+//   console.log(id)
+//       // Find the document by ID
+// //       const document = await Register.findById(id);
+
+// //       if (!document) {
+// //         return res.status(404).json({ message: 'Document not found' });
+// //       }
+// //   console.log(document)
+//       // Check if the index is valid
+//     //   if (index >= 0 && index < document.followers.length) {
+//     //     // Remove the element from the array
+//     //     // document.followers.splice(index, 1);
+
+//     //     // Save the updated document
+//     //     await document.save();
+
+//     //     res.json({ message: 'Element deleted successfully' });
+//     //   } else {
+//     //     res.status(400).json({ message: 'Invalid index number' });
+//     //   }
+
+//     Register.updateOne( {_id:id},{ $pull: { followers: { mobile: index } } })  //params means parameter value
+//       .then((data) => {
+
+//            // sendnotificationforplacebid( req.body.Name,req.body.mess, uniqId)
+//             res.json(data)
+//       })
+//       .catch(err => res.status(400).json(Error: ${err}));
+//   }
+//      catch (error) {
+//       res.status(500).json({ message: 'Server error' });
+//     }
+//   });
+
+
+// router.post('/deletefollower', (req, res, next)=>{
+//     console.log(req.body._id)
+//     console.log(req.body.mobile)
+//     Register.findOneAndDelete({ "_id":req.body._id,"followers.$.mobile":req.body.mobile}).select().exec().then(doc=>{
+//          console.log(doc);
+
+//         //accessing particular bids of that user truker only bids accessed here 
+
+//         if(doc){
+
+
+
+
+
+//         //console.log(tempData);
+//         res.status(200).json({
+//             status:"success",
+//             message: "found the bids",
+//             data:doc,
+//             count:doc.length
+//         })
+//     }else{
+//         res.status(400).json({
+//             status:"failed",
+//             message:"no bids found"
+//         })
+//     }
+
+
+
+//     })
+// })
 
 
 //     router.post('/forgot-password',jwtMiddleware.verifyToken, (req, res) => {
 //         const { Email,otp } = req.body;
 //        // const otp = Math.floor(100000 + Math.random() * 900000);
-     
-        
+
+
 //       Register.findOne({Email:Email}).select().exec().then( doc => {
-    
-   
+
+
 //         if(doc == null || doc == undefined || doc ==''){
 //           res.status(400).json({ 
 //               Authentication: 'User not exist',
 //               message:'failed'
 //           })
 //         }
-      
+
 //         else if(Email == doc.Email){
 
 
@@ -874,7 +1110,7 @@ async function sendnotificationforplacebid(mess, Name, BidPrice, uniqId) {
 //   text: You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n
 
 //     +  Your One-Time Password (OTP) for password reset is: ${otp}.
- 
+
 // };
 
 // transporter.sendMail(mailOptions, (error) => {
@@ -898,40 +1134,40 @@ async function sendnotificationforplacebid(mess, Name, BidPrice, uniqId) {
 //                 Authentication: 'Failed to login ',
 //                 message:'error'
 //                                 });
-    
+
 //         }
 //        }).catch(err => {
 //            console.log(err);
 //            res.status(500).json({error: err});
 //        });
-     
+
 //       });
 
-      router.post('/update-password', async (req, res) => {
-        const password = req.body.password
-      try {
+router.post('/update-password', async (req, res) => {
+    const password = req.body.password
+    try {
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
-    
+
         // Update password in MongoDB
-      const result =  await Register.findOneAndUpdate({ _id:req.body.userDocId }, { password: hashedPassword });
-    
+        const result = await Register.findOneAndUpdate({ _id: req.body.userDocId }, { password: hashedPassword });
+
         console.log('Password updated successfully');
-             res.status(400).json({ 
-                Authentication: 'Password updated successfully',
-                message:'success',
-                result
+        res.status(400).json({
+            Authentication: 'Password updated successfully',
+            message: 'success',
+            result
 
-             })
-      } catch (error) {
-        res.status(400).json({ 
-            Authentication: 'Failed to update ',
-            message:'error'
-     
         })
-      } 
-    })
+    } catch (error) {
+        res.status(400).json({
+            Authentication: 'Failed to update ',
+            message: 'error'
+
+        })
+    }
+})
 
 
-   
+
 module.exports = router
