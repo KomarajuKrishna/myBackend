@@ -1,11 +1,12 @@
-const express = require('express')
-const router = express.Router()
-var cors = require('cors');
-const mongoose = require('mongoose')
-const Register = require('../schema/registerSchema')
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-// const jwtMiddleware = require('./jwt')
+const express = require("express");
+const router = express.Router();
+var cors = require("cors");
+const mongoose = require("mongoose");
+const Register = require("../schema/registerSchema");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const Redis = require("ioredis");
+const redisClient = new Redis();
 // const nodemailer = require('nodemailer')
 // const bodyparser = require('body-parser')
 // const Register = require('../Models/register')
@@ -13,59 +14,52 @@ const jwt = require('jsonwebtoken');
 // const JWT_SECRET = '798fgu46098jhvug5889uuy';
 // const OneSignal = require('@onesignal/node-onesignal')
 
+const DEFAULT_EXPIRATION = 3600;
 
 //login
 
-router.post('/logindetails', async (req, res, next) => {
-    try {
-        const mobile = req.body.mobile;
-        const password = req.body.password;
+router.post("/logindetails", async (req, res, next) => {
+  try {
+    const mobile = req.body.mobile;
+    const password = req.body.password;
 
-        const user = await Register.findOne({ mobile: mobile }).select().exec();
+    const user = await Register.findOne({ mobile: mobile }).select().exec();
 
-        if (!user || password !== user.password) {
-            return res.status(401).json({
-                message: "Authentication failed",
-            });
-        }
-
-        // Generate JWT token
-        const token = jwt.sign(
-            { userId: user._id, mobile: user.mobile },
-            'your_secret_key', // Replace with your own secret key
-            { expiresIn: '1h' } // Token expiration time
-        );
-
-        res.status(200).json({
-            message: "Authentication successful",
-            token: token,
-            data: user,
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            message: "Internal server error",
-        });
+    if (!user || password !== user.password) {
+      return res.status(401).json({
+        message: "Authentication failed",
+      });
     }
+
+    // Generate JWT token
+    // const token = jwt.sign(
+    //   { userId: user._id, mobile: user.mobile },
+    //   "AccessToken",
+    //   { expiresIn: "1h" } // Token expiration time
+    // );
+    const playLoad = {
+      userId: user._id,
+      name: user.Fullname,
+    };
+    const jwtToken = jwt.sign(playLoad, "AccessToken");
+    // await redisClient.set(
+    //   "authorizationToken",
+    //   jwtToken,
+    //   "EX",
+    //   DEFAULT_EXPIRATION
+    // );
+    res.status(200).json({
+      message: "Authentication successful",
+      token: jwtToken,
+      data: user,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Internal server error",
+    });
+  }
 });
-
-router.delete('/deletetodos/:id', (req, res) => {
-    Register.findByIdAndDelete(req.params.id)  //params means parameter value
-        .then(() => res.json('user deleted'))
-        .catch(err => res.status(400).json(`Error: ${err}`));
-
-})
-
-router.get('/getsignup', async (req, res) => {  //// async makes a function return a Promise
-    try {
-        const signup = await Register.find({})
-        //await makes a function wait for a Promise
-        res.status(200).json({ signup })
-    } catch (error) {
-        res.status(400).send(error)
-        console.log(error)
-    }
-})
 
 // //registration
 
@@ -107,19 +101,18 @@ router.post('/Register', async (req, res) => {
     }
 });
 
-router.get('/getsignupdetails', async (req, res) => {
-    try {
-        const sinInfo = await Register.find()
-        res.status(200).json({
-            count: sinInfo.length,
-            RegisterInfo: sinInfo
-        })
-    } catch (err) {
-        console.log(err)
-        res.status(400).json({ err })
-    }
-})
-
+router.get("/getsignupdetails", async (req, res) => {
+  try {
+    const sinInfo = await Register.find();
+    res.status(200).json({
+      count: sinInfo.length,
+      RegisterInfo: sinInfo,
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({ err });
+  }
+});
 
 router.get('/getbymobile/:mobile', async (req, res) => {
     Register.find({ "mobile": req.params.mobile }).select().exec().then(
@@ -261,7 +254,7 @@ router.post('/getsignup', (req, res, next) => {
 //     console.log("User profile is called")
 
 //     const signup = new Register({
-//         _id: new mongoose.Types.ObjectId,   
+//         _id: new mongoose.Types.ObjectId,
 //         mobile: req.body.mobile,
 //         Fullname: req.body.Fullname,
 //         Email: req.body.Email,
@@ -276,7 +269,7 @@ router.post('/getsignup', (req, res, next) => {
 //     var mobile = req.body.mobile;
 //     var Email = req.body.Email;
 //     var uniqueid = req.body.uniqueid;
-//     //first check if user is alredy existed 
+//     //first check if user is alredy existed
 //     Register.findOne({ $or: [{mobile: mobile },{Email:Email} ]}).select().exec().then(doc => {
 //         console.log(doc)
 //         if (doc == null || doc == undefined || doc == '') { //if no user found then create new user
@@ -330,230 +323,185 @@ router.post('/refresh', (req, res) => {
     });
 });
 
-// router.post('/addsignupdetails', async (req, res, next) => {
-//     // Fields to consider for percentage calculation
-//     const totalFields = ['mobile', 'Fullname', 'Email', 'city', 'About', 'gender', 'Address', 'Role', 'state', 'country', 'password'];
-//     // Count the number of fields present in the request
-//     let presentFields = 0;
-//     for (const field of totalFields) {
-//         if (req.body[field] !== undefined && req.body[field] !== '') {
-//             presentFields++;
-//         }
-//     }
-//     const percentage = (presentFields / totalFields.length) * 100;
-//     if (req.body.password) {
-//         var hashedPassword = await bcrypt.hash(req.body.password, 10);
-//     } else {
-//         var hashedPassword = ''
-//     }
-
-//     const signup = new Register({
-//         _id: new mongoose.Types.ObjectId(),
-//         mobile: req.body.mobile,
-//         Fullname: req.body.Fullname,
-//         Email: req.body.Email,
-//         city: req.body.city,
-//         About: req.body.About,
-//         gender: req.body.gender,
-//         uniqueid: req.body.uniqueid,
-//         Role: req.body.Role,
-//         password: hashedPassword,
-//         uniqueDeviceId: req.body.uniqueDeviceId,
-//         percentage: percentage,
-//     });
-
-//     var mobile = req.body.mobile;
-//     var Email = req.body.Email;
-//     var uniqueid = req.body.uniqueid;
-
-//     //first check if user is already existed 
-//     Register.findOne({ $or: [{ mobile: mobile }, { Email: Email }] }).select().exec().then(doc => {
-//         console.log(doc)
-
-//         if (!doc) { // If no user found, create a new user
-//             signup.save().then(async result => {
-//                 res.status(200).json({
-//                     message: "User signed up successfully",
-//                     status: "success",
-//                     Id: result._id,
-//                     Fullname: result.Fullname,
-//                     Email: result.Email,
-//                     mobile: result.mobile,
-//                     city: result.city,
-//                     About: result.About,
-//                     gender: result.gender,
-//                     country: result.country,
-//                     Address: result.Address,
-//                     state: result.state,
-//                     Role: result.Role,
-//                     password: result.password,
-//                     percentage: result.percentage,
-//                 });
-
-//             }).catch(err => {
-//                 console.log(err);
-//                 res.status(500).json({
-//                     error: err,
-//                     status: "failed"
-//                 });
-//             });
-//         } else {
-//             res.status(200).json({
-//                 message: "User already exists",
-//                 status: "failed"
-//             });
-//         }
-//     });
-// });
-
-router.post('/addsignupdetails', (req, res, next) => {
-    console.log("User profile is called");
-
-    // Fields to consider for percentage calculation
-    const totalFields = ['mobile', 'Fullname', 'Email', 'city', 'About', 'gender', 'Address', 'Role', 'state', 'country'];
-
-    // Count the number of fields present in the request
-    let presentFields = 0;
-    for (const field of totalFields) {
-        if (req.body[field] !== undefined && req.body[field] !== '') {
-            presentFields++;
-        }
+router.post("/addsignupdetails", async (req, res, next) => {
+  // Fields to consider for percentage calculation
+  const totalFields = [
+    "mobile",
+    "Fullname",
+    "Email",
+    "city",
+    "About",
+    "gender",
+    "Address",
+    "Role",
+    "state",
+    "country",
+    "password",
+  ];
+  // Count the number of fields present in the request
+  let presentFields = 0;
+  for (const field of totalFields) {
+    if (req.body[field] !== undefined && req.body[field] !== "") {
+      presentFields++;
     }
+  }
+  const percentage = (presentFields / totalFields.length) * 100;
+  if (req.body.password) {
+    var hashedPassword = await bcrypt.hash(req.body.password, 10);
+  } else {
+    var hashedPassword = "";
+  }
 
-    const percentage = (presentFields / totalFields.length) * 100;
+  const signup = new Register({
+    _id: new mongoose.Types.ObjectId(),
+    mobile: req.body.mobile,
+    Fullname: req.body.Fullname,
+    Email: req.body.Email,
+    city: req.body.city,
+    About: req.body.About,
+    gender: req.body.gender,
+    uniqueid: req.body.uniqueid,
+    Role: req.body.Role,
+    password: hashedPassword,
+    uniqueDeviceId: req.body.uniqueDeviceId,
+    percentage: percentage,
+  });
 
-    const signup = new Register({
-        _id: new mongoose.Types.ObjectId(),
-        mobile: req.body.mobile,
-        Fullname: req.body.Fullname,
-        Email: req.body.Email,
-        city: req.body.city,
-        About: req.body.About,
-        gender: req.body.gender,
-        uniqueid: req.body.uniqueid,
-        Role: req.body.Role,
-        uniqueDeviceId: req.body.uniqueDeviceId,
-        percentage: percentage,
-        password: req.body.password
-    });
+  var mobile = req.body.mobile;
+  var Email = req.body.Email;
+  var uniqueid = req.body.uniqueid;
 
-    var mobile = req.body.mobile;
-    var Email = req.body.Email;
-    var uniqueid = req.body.uniqueid;
+  //first check if user is already existed
+  Register.findOne({ $or: [{ mobile: mobile }, { Email: Email }] })
+    .select()
+    .exec()
+    .then((doc) => {
+      console.log(doc);
 
-    //first check if user is already existed 
-    Register.findOne({ $or: [{ mobile: mobile }, { Email: Email }] }).select().exec().then(doc => {
-        console.log(doc)
-
-        if (!doc) { // If no user found, create a new user
-            signup.save().then(result => {
-                res.status(200).json({
-                    message: "User signed up successfully",
-                    status: "success",
-                    Id: result._id,
-                    Fullname: result.Fullname,
-                    Email: result.Email,
-                    mobile: result.mobile,
-                    city: result.city,
-                    About: result.About,
-                    gender: result.gender,
-                    country: result.country,
-                    Address: result.Address,
-                    state: result.state,
-                    Role: result.Role,
-                    password: result.password,
-                    percentage: result.percentage,
-                });
-            }).catch(err => {
-                console.log(err);
-                res.status(500).json({
-                    error: err,
-                    status: "failed"
-                });
-            });
-        } else {
+      if (!doc) {
+        // If no user found, create a new user
+        signup
+          .save()
+          .then(async (result) => {
             res.status(200).json({
-                message: "User already exists",
-                status: "failed"
+              message: "User signed up successfully",
+              status: "success",
+              Id: result._id,
+              Fullname: result.Fullname,
+              Email: result.Email,
+              mobile: result.mobile,
+              city: result.city,
+              About: result.About,
+              gender: result.gender,
+              country: result.country,
+              Address: result.Address,
+              state: result.state,
+              Role: result.Role,
+              percentage: result.percentage,
             });
-        }
+          })
+          .catch((err) => {
+            console.log(err);
+            res.status(500).json({
+              error: err,
+              status: "failed",
+            });
+          });
+      } else {
+        res.status(200).json({
+          message: "User already exists",
+          status: "failed",
+        });
+      }
     });
 });
 
-router.put('/editProfile/:id', (req, res, next) => {
-    const id = req.params.id; // Extract the document ID from the request params
+router.put("/editProfile/:id", (req, res, next) => {
+  const id = req.params.id; // Extract the document ID from the request params
 
-    // Fields to consider for percentage calculation
-    const totalFields = ['mobile', 'Fullname', 'Email', 'city', 'About', 'gender', 'Address', 'Role', 'state', 'country'];
+  // Fields to consider for percentage calculation
+  const totalFields = [
+    "mobile",
+    "Fullname",
+    "Email",
+    "city",
+    "About",
+    "gender",
+    "Address",
+    "Role",
+    "state",
+    "country",
+    "uniqueDeviceId",
+  ];
 
-    // Find the existing document in the MongoDB collection
-    Register.findById(id)
-        .then(existingDoc => {
-            if (!existingDoc) {
-                return res.status(404).json({
-                    message: "User not found",
-                    status: "failed"
-                });
-            }
-
-            // Merge the existing data with the new data from the request body
-            const updatedData = { ...existingDoc.toObject(), ...req.body };
-
-            // Count the number of fields present in the merged data
-            let presentFields = 0;
-            for (const field of totalFields) {
-                if (updatedData[field] !== undefined && updatedData[field] !== '') {
-                    presentFields++;
-                }
-            }
-
-            const percentage = (presentFields / totalFields.length) * 100;
-
-            // Update the percentage in the merged data
-            updatedData.percentage = percentage;
-
-            // Update the document in the MongoDB collection
-            Register.findByIdAndUpdate(id, updatedData, { new: true })
-                .then(updatedDoc => {
-                    if (!updatedDoc) {
-                        return res.status(404).json({
-                            message: "User not found",
-                            status: "failed"
-                        });
-                    }
-
-                    res.status(200).json({
-                        message: "User details updated successfully",
-                        status: "success",
-                        Id: updatedDoc._id,
-                        Fullname: updatedDoc.Fullname,
-                        Email: updatedDoc.Email,
-                        mobile: updatedDoc.mobile,
-                        city: updatedDoc.city,
-                        About: updatedDoc.About,
-                        gender: updatedDoc.gender,
-                        country: updatedDoc.country,
-                        Address: updatedDoc.Address,
-                        state: updatedDoc.state,
-                        Role: updatedDoc.Role,
-                        percentage: updatedDoc.percentage,
-                    });
-                })
-                .catch(err => {
-                    console.log(err);
-                    res.status(500).json({
-                        error: err,
-                        status: "failed"
-                    });
-                });
-        })
-        .catch(err => {
-            console.log(err);
-            res.status(500).json({
-                error: err,
-                status: "failed"
-            });
+  // Find the existing document in the MongoDB collection
+  Register.findById(id)
+    .then((existingDoc) => {
+      if (!existingDoc) {
+        return res.status(404).json({
+          message: "User not found",
+          status: "failed",
         });
+      }
+
+      // Merge the existing data with the new data from the request body
+      const updatedData = { ...existingDoc.toObject(), ...req.body };
+
+      // Count the number of fields present in the merged data
+      let presentFields = 0;
+      for (const field of totalFields) {
+        if (updatedData[field] !== undefined && updatedData[field] !== "") {
+          presentFields++;
+        }
+      }
+
+      const percentage = (presentFields / totalFields.length) * 100;
+
+      // Update the percentage in the merged data
+      updatedData.percentage = percentage;
+
+      // Update the document in the MongoDB collection
+      Register.findByIdAndUpdate(id, updatedData, { new: true })
+        .then((updatedDoc) => {
+          if (!updatedDoc) {
+            return res.status(404).json({
+              message: "User not found",
+              status: "failed",
+            });
+          }
+
+          res.status(200).json({
+            message: "User details updated successfully",
+            status: "success",
+            Id: updatedDoc._id,
+            Fullname: updatedDoc.Fullname,
+            Email: updatedDoc.Email,
+            mobile: updatedDoc.mobile,
+            city: updatedDoc.city,
+            About: updatedDoc.About,
+            gender: updatedDoc.gender,
+            country: updatedDoc.country,
+            Address: updatedDoc.Address,
+            state: updatedDoc.state,
+            Role: updatedDoc.Role,
+            percentage: updatedDoc.percentage,
+          });
+        })
+        .catch((err) => {
+          console.log(err);
+          res.status(500).json({
+            error: err,
+            status: "failed",
+          });
+        });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({
+        error: err,
+        status: "failed",
+      });
+    });
 });
 
 
@@ -635,82 +583,86 @@ router.put('/editProfile/:id', (req, res, next) => {
 //         });
 // });
 
-router.post('/login', async (req, res) => {
-    try {
-        const { mobile, password } = req.body;
-        const user = await Register.findOne({ mobile });
+router.post("/login", async (req, res) => {
+  try {
+    const { mobile, password } = req.body;
+    const user = await Register.findOne({ mobile });
 
-        if (!user) {
-            return res.status(401).json({
-                status: 'failed',
-                error: 'User not found'
-            });
-        }
-
-
-        async function comparePasswords(enteredPassword, hashedPassword) {
-            try {
-                const passwordMatch = await bcrypt.compare(enteredPassword, hashedPassword);
-                return passwordMatch;
-            } catch (error) {
-                // Handle any errors that may occur during the comparison
-                res.status(401).json({
-                    status: "invalid",
-                    error: 'Invalid password'
-                });
-            }
-        }
-
-        // Example usage
-        const enteredPassword = password; // Replace with the user-entered password
-        const hashedPassword = user.password; // Replace with the hashed password from your database
-
-        comparePasswords(enteredPassword, hashedPassword)
-            .then((passwordMatch) => {
-                console.log(passwordMatch)
-                if (passwordMatch) {
-                    const token = jwtMiddleware.generateToken(user.mobile, user.Role);
-                    logger.info(token)
-                    const refreshToken = jwtMiddleware.generateRefreshToken(user.mobile, user.Role);
-                    logger.info(refreshToken)
-                    res.json({
-                        status: "success",
-                        user,
-                        token, refreshToken
-                    });
-                } else {
-                    res.status(401).json({
-                        status: "invalid",
-                        error: 'Invalid password'
-                    });
-                }
-            })
-            .catch((error) => {
-                console.error(error);
-            });
-
-
-        //   const passwordMatch =  bcrypt.compare(password, user.password);
-
-        //   if (!passwordMatch) {
-        //     return res.status(401).json({ 
-        //         status:"invalid",
-        //         error: 'Invalid password' });
-        //   }
-
-        //   const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
-        //     expiresIn: '1h',
-        //   });
-
-        //   res.json({
-        //     status:"success",
-        //     user,
-        //      token });
-    } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+    if (!user) {
+      return res.status(401).json({
+        status: "failed",
+        error: "User not found",
+      });
     }
-});
 
+    async function comparePasswords(enteredPassword, hashedPassword) {
+      try {
+        const passwordMatch = await bcrypt.compare(
+          enteredPassword,
+          hashedPassword
+        );
+        return passwordMatch;
+      } catch (error) {
+        // Handle any errors that may occur during the comparison
+        res.status(401).json({
+          status: "invalid",
+          error: "Invalid password",
+        });
+      }
+    }
+
+    // Example usage
+    const enteredPassword = password; // Replace with the user-entered password
+    const hashedPassword = user.password; // Replace with the hashed password from your database
+
+    comparePasswords(enteredPassword, hashedPassword)
+      .then((passwordMatch) => {
+        console.log(passwordMatch);
+        if (passwordMatch) {
+          const token = jwtMiddleware.generateToken(user.mobile, user.Role);
+          logger.info(token);
+          const refreshToken = jwtMiddleware.generateRefreshToken(
+            user.mobile,
+            user.Role
+          );
+          logger.info(refreshToken);
+          res.json({
+            status: "success",
+            user,
+            token,
+            refreshToken,
+          });
+        } else {
+          res.status(401).json({
+            status: "invalid",
+            error: "Invalid password",
+          });
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+
+    //   const passwordMatch =  bcrypt.compare(password, user.password);
+
+    //   if (!passwordMatch) {
+    //     return res.status(401).json({
+    //         status:"invalid",
+    //         error: 'Invalid password' });
+    //   }
+
+    //   const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
+    //     expiresIn: '1h',
+    //   });
+
+    //   res.json({
+    //     status:"success",
+    //     user,
+    //      token });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 // router.post('/register', async (req, res) => {
 //     try {
@@ -738,271 +690,248 @@ router.post('/login', async (req, res) => {
 //         status:"success",
 //          message: 'User registered successfully' });
 //     } catch (error) {
-//       res.status(500).json({ 
+//       res.status(500).json({
 //         status:"failed",
 //         error: 'Internal server error' });
 //     }
 //   });
 
-router.post('/register', async (req, res) => {
-    try {
-        const { mobile, Fullname, Email, Role } = req.body;
-        const userexist = await Register.findOne({ mobile });
+router.post("/register", async (req, res) => {
+  try {
+    const { mobile, Fullname, Email, Role } = req.body;
+    const userexist = await Register.findOne({ mobile });
 
-        if (userexist) {
-            return res.status(401).json({
-                status: 'exist',
-                error: 'User exist found'
-            });
-        }
-        const saltRounds = 10;
-        //   const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-        const user = new Register({
-            mobile,
-            // password: hashedPassword,
-            Fullname,
-            Email,
-            Role
-        });
-
-        await user.save();
-        res.status(201).json({
-            status: "success",
-            message: 'User registered successfully'
-        });
-    } catch (error) {
-        res.status(500).json({
-            status: "failed",
-            error: 'Internal server error'
-        });
+    if (userexist) {
+      return res.status(401).json({
+        status: "exist",
+        error: "User exist found",
+      });
     }
+    const saltRounds = 10;
+    //   const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const user = new Register({
+      mobile,
+      // password: hashedPassword,
+      Fullname,
+      Email,
+      Role,
+    });
+
+    await user.save();
+    res.status(201).json({
+      status: "success",
+      message: "User registered successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "failed",
+      error: "Internal server error",
+    });
+  }
 });
-router.get('/getSignUpById/:id', async (req, res) => {
-    Register.find({ "_id": req.params.id }).select().exec().then(
-        doc => {
-            console.log(doc)
-            for (let i = 0; i < doc.length; i++) {
-                var data = doc[i].profileImage
-            }
-            if (doc) {
-                res.status(200).json({
-                    profile: data,
-                    message: "Matching found",
-                    status: "success",
-                    doc: doc
-                })
-            } else {
-                res.status(400).json({
-                    message: "Matching not found",
-                    status: "no docs"
-                })
-
-            }
-        }
-    ).catch(err => {
+router.get("/getSignUpById/:id", async (req, res) => {
+  Register.find({ _id: req.params.id })
+    .select()
+    .exec()
+    .then((doc) => {
+      console.log(doc);
+      for (let i = 0; i < doc.length; i++) {
+        var data = doc[i].profileImage;
+      }
+      if (doc) {
+        res.status(200).json({
+          profile: data,
+          message: "Matching found",
+          status: "success",
+        });
+      } else {
         res.status(400).json({
-            message: "failed to get Code",
-            status: "failed",
-            error: err
-        })
+          message: "Matching not found",
+          status: "no docs",
+        });
+      }
     })
-
-})
-
-
+    .catch((err) => {
+      res.status(400).json({
+        message: "failed to get Code",
+        status: "failed",
+        error: err,
+      });
+    });
+});
 
 async function sendnotificationforplacebid(mess, Name, BidPrice, uniqId) {
-    console.log(uniqId)
-    const ONESIGNAL_APP_ID = '74400711-bf20-47f8-9204-ca2f9b677e7f';
+  console.log(uniqId);
+  const ONESIGNAL_APP_ID = "74400711-bf20-47f8-9204-ca2f9b677e7f";
 
-    const app_key_provider = {
-        getToken() {
-            return 'MGRiYjM0Y2YtMmMzYS00YTg3LWFhM2EtODQwODVkOWRkMzc3';
-        }
-    };
+  const app_key_provider = {
+    getToken() {
+      return "MGRiYjM0Y2YtMmMzYS00YTg3LWFhM2EtODQwODVkOWRkMzc3";
+    },
+  };
 
-    const configuration = OneSignal.createConfiguration({
-        authMethods: {
-            app_key: {
-                tokenProvider: app_key_provider
-            }
-        }
-    });
-    const client = new OneSignal.DefaultApi(configuration);
+  const configuration = OneSignal.createConfiguration({
+    authMethods: {
+      app_key: {
+        tokenProvider: app_key_provider,
+      },
+    },
+  });
+  const client = new OneSignal.DefaultApi(configuration);
 
-    const notification = new OneSignal.Notification();
-    notification.app_id = ONESIGNAL_APP_ID;
-    //notification.included_segments = ['Subscribed Users'];
-    //notification.include_external_user_ids=["86744b78-55c9-42a7-92ee-5d93e1434d2b"];
-    notification.include_external_user_ids = [uniqId];
-    notification.contents = {
-        en: 'narayan' + " " + 'posted'
-    };
-    const { id } = await client.createNotification(notification);
+  const notification = new OneSignal.Notification();
+  notification.app_id = ONESIGNAL_APP_ID;
+  //notification.included_segments = ['Subscribed Users'];
+  //notification.include_external_user_ids=["86744b78-55c9-42a7-92ee-5d93e1434d2b"];
+  notification.include_external_user_ids = [uniqId];
+  notification.contents = {
+    en: "narayan" + " " + "posted",
+  };
+  const { id } = await client.createNotification(notification);
 
-    const response = await client.getNotification(ONESIGNAL_APP_ID, id);
-    console.log(response)
-    //res.json(response)
-
+  const response = await client.getNotification(ONESIGNAL_APP_ID, id);
+  console.log(response);
+  //res.json(response)
 }
-
 
 async function sendnotificationforplacebid(mess, Name, BidPrice, uniqId) {
-    console.log(uniqId)
-    const ONESIGNAL_APP_ID = 'b565b895-f2bd-4be3-b40f-99a29750c39e';
+  console.log(uniqId);
+  const ONESIGNAL_APP_ID = "b565b895-f2bd-4be3-b40f-99a29750c39e";
 
-    const app_key_provider = {
-        getToken() {
-            return 'MDczYjQwZTEtOGQ4Ni00MWMxLTk1ODYtMjEyMWU2ZjZhZTcy';
-        }
-    };
+  const app_key_provider = {
+    getToken() {
+      return "MDczYjQwZTEtOGQ4Ni00MWMxLTk1ODYtMjEyMWU2ZjZhZTcy";
+    },
+  };
 
-    const configuration = OneSignal.createConfiguration({
-        authMethods: {
-            app_key: {
-                tokenProvider: app_key_provider
-            }
-        }
-    });
-    const client = new OneSignal.DefaultApi(configuration);
+  const configuration = OneSignal.createConfiguration({
+    authMethods: {
+      app_key: {
+        tokenProvider: app_key_provider,
+      },
+    },
+  });
+  const client = new OneSignal.DefaultApi(configuration);
 
-    const notification = new OneSignal.Notification();
-    notification.app_id = ONESIGNAL_APP_ID;
-    //notification.included_segments = ['Subscribed Users'];
-    //notification.include_external_user_ids=["86744b78-55c9-42a7-92ee-5d93e1434d2b"];
-    notification.include_external_user_ids = [uniqId];
-    notification.contents = {
-        en: Name + " " + mess + " " + BidPrice
-    };
-    const { id } = await client.createNotification(notification);
+  const notification = new OneSignal.Notification();
+  notification.app_id = ONESIGNAL_APP_ID;
+  //notification.included_segments = ['Subscribed Users'];
+  //notification.include_external_user_ids=["86744b78-55c9-42a7-92ee-5d93e1434d2b"];
+  notification.include_external_user_ids = [uniqId];
+  notification.contents = {
+    en: Name + " " + mess + " " + BidPrice,
+  };
+  const { id } = await client.createNotification(notification);
 
-    const response = await client.getNotification(ONESIGNAL_APP_ID, id);
-    console.log(response)
-    //res.json(response)
-
+  const response = await client.getNotification(ONESIGNAL_APP_ID, id);
+  console.log(response);
+  //res.json(response)
 }
 
+router.post("/followers", (req, res, next) => {
+  var query = { _id: req.body._id };
 
+  var Rest = {
+    $push: {
+      followers: {
+        mobile: req.body.mobile,
+        Fullname: req.body.Fullname,
+        profileImage: req.body.profileImage,
 
-router.post('/followers', (req, res, next) => {
+        // "profileImage": req.body.profileImage,
+      },
+    },
+  };
 
+  console.log(Rest);
+  console.log(query);
 
-    var query = { "_id": req.body._id }
-
-
-    var Rest = {
-        $push: {
-            "followers": {
-                "mobile": req.body.mobile,
-                "Fullname": req.body.Fullname,
-                "profileImage": req.body.profileImage
-
-                // "profileImage": req.body.profileImage, 
-            }
-        },
-    }
-
-    console.log(Rest)
-    console.log(query)
-
-    Register.findOneAndUpdate(query, Rest).select().exec().then(
-        doc => {
-
-
-            if (doc) {
-
-                res.status(200).json({
-                    data: doc,
-                    message: "got the matching loads based on the profile",
-                    status: "success"
-                })
-
-
-            } else {
-                res.status(400).json({
-                    message: "no matching docs found",
-                    status: "no docs"
-                })
-
-            }
-
-        }
-    ).catch(err => {
+  Register.findOneAndUpdate(query, Rest)
+    .select()
+    .exec()
+    .then((doc) => {
+      if (doc) {
+        res.status(200).json({
+          data: doc,
+          message: "got the matching loads based on the profile",
+          status: "success",
+        });
+      } else {
         res.status(400).json({
-            message: "failed to bid",
-            status: "failed",
-            error: err
-        })
-
-
+          message: "no matching docs found",
+          status: "no docs",
+        });
+      }
     })
-})
+    .catch((err) => {
+      res.status(400).json({
+        message: "failed to bid",
+        status: "failed",
+        error: err,
+      });
+    });
+});
 
+router.get("/getfollowers/:mobile", async (req, res) => {
+  Register.find({ mobile: req.params.mobile })
+    .select()
+    .exec()
+    .then((doc) => {
+      console.log(doc);
+      if (doc) {
+        res.status(200).json({
+          data: doc,
+          Loads: doc.length,
 
-
-
-router.get('/getfollowers/:mobile', async (req, res) => {
-    Register.find({ "mobile": req.params.mobile }).select().exec().then(
-        doc => {
-            console.log(doc)
-            if (doc) {
-                res.status(200).json({
-                    data: doc,
-                    Loads: doc.length,
-
-                    message: "Matching found",
-                    status: "success"
-                })
-            } else {
-                res.status(400).json({
-                    message: "Matching not found",
-                    status: "no docs"
-                })
-
-            }
-        }
-    ).catch(err => {
+          message: "Matching found",
+          status: "success",
+        });
+      } else {
         res.status(400).json({
-            message: "failed to get Code",
-            status: "failed",
-            error: err
-        })
+          message: "Matching not found",
+          status: "no docs",
+        });
+      }
     })
+    .catch((err) => {
+      res.status(400).json({
+        message: "failed to get Code",
+        status: "failed",
+        error: err,
+      });
+    });
+});
 
-})
+router.get("/getfollowers/:mobile", async (req, res) => {
+  Register.find({ mobile: req.params.mobile })
+    .select()
+    .exec()
+    .then((doc) => {
+      console.log(doc);
+      if (doc) {
+        res.status(200).json({
+          data: doc,
+          Loads: doc.length,
 
-
-
-router.get('/getfollowers/:mobile', async (req, res) => {
-    Register.find({ "mobile": req.params.mobile }).select().exec().then(
-        doc => {
-            console.log(doc)
-            if (doc) {
-                res.status(200).json({
-                    data: doc,
-                    Loads: doc.length,
-
-                    message: "Matching found",
-                    status: "success"
-                })
-            } else {
-                res.status(400).json({
-                    message: "Matching not found",
-                    status: "no docs"
-                })
-
-            }
-        }
-    ).catch(err => {
+          message: "Matching found",
+          status: "success",
+        });
+      } else {
         res.status(400).json({
-            message: "failed to get Code",
-            status: "failed",
-            error: err
-        })
+          message: "Matching not found",
+          status: "no docs",
+        });
+      }
     })
-
-})
+    .catch((err) => {
+      res.status(400).json({
+        message: "failed to get Code",
+        status: "failed",
+        error: err,
+      });
+    });
+});
 // router.post('/deletefollower', jwtMiddleware.verifyToken,async (req, res) => {
 //     try {
 //       const id = req.body.id; // The document ID
@@ -1042,7 +971,32 @@ router.get('/getfollowers/:mobile', async (req, res) => {
 //     }
 //   });
 
+// router.post('/deletefollower', (req, res, next)=>{
+//     console.log(req.body._id)
+//     console.log(req.body.mobile)
+//     Register.findOneAndDelete({ "_id":req.body._id,"followers.$.mobile":req.body.mobile}).select().exec().then(doc=>{
+//          console.log(doc);
 
+//         //accessing particular bids of that user truker only bids accessed here
+
+//         if(doc){
+
+//         //console.log(tempData);
+//         res.status(200).json({
+//             status:"success",
+//             message: "found the bids",
+//             data:doc,
+//             count:doc.length
+//         })
+//     }else{
+//         res.status(400).json({
+//             status:"failed",
+//             message:"no bids found"
+//         })
+//     }
+
+//     })
+// })
 // router.post('/deletefollower', (req, res, next)=>{
 //     console.log(req.body._id)
 //     console.log(req.body.mobile)
@@ -1076,24 +1030,20 @@ router.get('/getfollowers/:mobile', async (req, res) => {
 //     })
 // })
 
-
 //     router.post('/forgot-password',jwtMiddleware.verifyToken, (req, res) => {
 //         const { Email,otp } = req.body;
 //        // const otp = Math.floor(100000 + Math.random() * 900000);
 
-
 //       Register.findOne({Email:Email}).select().exec().then( doc => {
 
-
 //         if(doc == null || doc == undefined || doc ==''){
-//           res.status(400).json({ 
+//           res.status(400).json({
 //               Authentication: 'User not exist',
 //               message:'failed'
 //           })
 //         }
 
 //         else if(Email == doc.Email){
-
 
 //             var transporter = nodemailer.createTransport({
 //                 service: 'Gmail',
@@ -1129,8 +1079,8 @@ router.get('/getfollowers/:mobile', async (req, res) => {
 
 //         }
 //         else
-//         { 
-//             res.status(400).json({ 
+//         {
+//             res.status(400).json({
 //                 Authentication: 'Failed to login ',
 //                 message:'error'
 //                                 });
@@ -1143,31 +1093,30 @@ router.get('/getfollowers/:mobile', async (req, res) => {
 
 //       });
 
-router.post('/update-password', async (req, res) => {
-    const password = req.body.password
-    try {
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
+router.post("/update-password", async (req, res) => {
+  const password = req.body.password;
+  try {
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-        // Update password in MongoDB
-        const result = await Register.findOneAndUpdate({ _id: req.body.userDocId }, { password: hashedPassword });
+    // Update password in MongoDB
+    const result = await Register.findOneAndUpdate(
+      { _id: req.body.userDocId },
+      { password: hashedPassword }
+    );
 
-        console.log('Password updated successfully');
-        res.status(400).json({
-            Authentication: 'Password updated successfully',
-            message: 'success',
-            result
+    console.log("Password updated successfully");
+    res.status(400).json({
+      Authentication: "Password updated successfully",
+      message: "success",
+      result,
+    });
+  } catch (error) {
+    res.status(400).json({
+      Authentication: "Failed to update ",
+      message: "error",
+    });
+  }
+});
 
-        })
-    } catch (error) {
-        res.status(400).json({
-            Authentication: 'Failed to update ',
-            message: 'error'
-
-        })
-    }
-})
-
-
-
-module.exports = router
+module.exports = router;
