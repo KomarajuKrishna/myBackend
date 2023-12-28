@@ -42,12 +42,12 @@ router.post("/logindetails", async (req, res, next) => {
       name: user.Fullname,
     };
     const jwtToken = jwt.sign(playLoad, "AccessToken");
-    // await redisClient.set(
-    //   "authorizationToken",
-    //   jwtToken,
-    //   "EX",
-    //   DEFAULT_EXPIRATION
-    // );
+    await redisClient.set(
+      "authorizationToken",
+      jwtToken,
+      "EX",
+      DEFAULT_EXPIRATION
+    );
     res.status(200).json({
       message: "Authentication successful",
       token: jwtToken,

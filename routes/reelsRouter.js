@@ -35,6 +35,9 @@ const verifyAccessToken = async (request, response, next) => {
         response.status(401);
         response.send("Invalid Access Token");
       } else {
+        request.user = {
+          id: playLoad.userId,
+        };
         next();
         console.log(playLoad.userId);
         console.log(playLoad.name);
@@ -120,6 +123,72 @@ router.get("/media", verifyAccessToken, async (req, res) => {
   } catch (error) {
     console.error("Error retrieving media:", error);
     res.status(500).json({ error: "Failed to retrieve media" });
+  }
+});
+
+router.put("/media/:id/like", verifyAccessToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const reel = await reelsdetails.findById(id);
+
+    if (!reel) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Reel not found" });
+    }
+
+    // if the user has already liked the post
+    const alreadyLiked = reel.likedBy.includes(userId);
+
+    if (alreadyLiked) {
+      reel.likes -= 1;
+      reel.likedBy = reel.likedBy.filter((user) => user !== userId);
+    } else {
+      reel.likes += 1;
+      reel.likedBy.push(userId);
+    }
+
+    await reel.save();
+
+    res.json({
+      success: true,
+      message: alreadyLiked
+        ? "Post unliked successfully"
+        : "Post liked successfully",
+      likes: reel.likes,
+    });
+  } catch (error) {
+    console.error("Error updating likes:", error);
+    res.status(500).json({ success: false, message: "Unable to update likes" });
+  }
+});
+
+router.put("/media/:id/comment", verifyAccessToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { commentText } = req.body;
+    const userId = req.user.id;
+
+    const reel = await reelsdetails.findById(id);
+
+    if (!reel) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Reel not found" });
+    }
+    reel.comments.push({ comment: commentText, user: userId });
+
+    await reel.save();
+
+    res.json({
+      success: true,
+      message: "Comment added successfully",
+      comments: reel.comments,
+    });
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    res.status(500).json({ success: false, message: "Unable to add comment" });
   }
 });
 
