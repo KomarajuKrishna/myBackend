@@ -126,6 +126,26 @@ router.get("/media", verifyAccessToken, async (req, res) => {
   }
 });
 
+//Get Media by ID
+router.get("/media/:id", verifyAccessToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const media = await reelsdetails.findById(id);
+
+    if (!media) {
+      return res.status(404).json({ error: "Media not found" });
+    }
+
+    res.json(media);
+  } catch (error) {
+    console.error("Error retrieving media by ID:", error);
+    res.status(500).json({ error: "Failed to retrieve media by ID" });
+  }
+});
+
+
+//Like Api
 router.put("/media/:id/like", verifyAccessToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -164,6 +184,7 @@ router.put("/media/:id/like", verifyAccessToken, async (req, res) => {
   }
 });
 
+//Comments Api
 router.put("/media/:id/comment", verifyAccessToken, async (req, res) => {
   try {
     const { id } = req.params;
