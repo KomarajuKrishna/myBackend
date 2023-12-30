@@ -17,6 +17,16 @@ const businessSchema = new mongoose.Schema({
     longitude: { type: String, required: true },
     selectedState: { type: String, required: true },
     selectedCity: { type: String, required: true },
+    images: [
+        {
+            index: Number,
+            url: String,
+        },
+    ],
+    startdays: { type: String },
+    enddays: { type: String },
+    opentime: { type: String },
+    closetime: { type: String },
 });
 
 module.exports = mongoose.model('Business', businessSchema);
