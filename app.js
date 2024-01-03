@@ -7,6 +7,8 @@ const userRoutes = require('./routes/userRoutes')
 const restaurantRoutes = require('./routes/restaurantRoutes')
 const business = require('./routes/Createbusiness')
 const reelsRouter = require('./routes/reelsRouter')
+const imageupload = require('./routes/imageupload')
+const multipleimageupload = require('./routes/Multipleimageupload')
 
 const app = express();
 app.use(bodyParser.json());
@@ -38,3 +40,5 @@ app.use('/', userRoutes);
 app.use('/', restaurantRoutes);
 app.use('/', reelsRouter)
 app.use('/', business);
+app.use('/', imageupload);
+app.use('/', multipleimageupload);

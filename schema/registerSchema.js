@@ -1,66 +1,64 @@
 const mongoose = require('mongoose')
 
 const registerScheema = new mongoose.Schema({
-    
+
     Fullname: {
-        type: String 
+        type: String
     },
     profileImage: {
-        default:"https://cdn3.iconfinder.com/data/icons/login-5/512/LOGIN_6-1024.png",
-        type: String 
+        // default:"https://cdn3.iconfinder.com/data/icons/login-5/512/LOGIN_6-1024.png",
+        type: String
     },
- 
+
     Email: {
-        type: String  
+        type: String
     },
     mobile: {
-        type: String       
+        type: String
     },
-    city:{
-        type:String
+    city: {
+        type: String
     },
-    country:{
-        type:String
+    country: {
+        type: String
     },
-    Address:{
-        type:String
+    Address: {
+        type: String
     },
-    state:{
-        type:String
+    state: {
+        type: String
     },
-    About:{
-        type:String
+    About: {
+        type: String
     },
-    gender:{
-        type:String
+    gender: {
+        type: String
     },
-    Role:{
-        type:String
+    Role: {
+        type: String
     },
-  
-    uniqueid:{
-        type:String
+
+    uniqueid: {
+        type: String
     },
-    images:{
-        type:String
+ 
+    percentage: {
+        type: String,
+        default: 0
     },
-    percentage:{
-        type:String,
-        default:0
+    videos: { type: String },
+    commentPost: { type: String },
+    uniqueDeviceId: { type: String },
+
+    followers: {
+        type: Array
     },
-    videos:{ type:String},
-    commentPost:{ type:String},
-    uniqueDeviceId:{ type:String},
-    
-    followers:{
-        type:Array
+    password: {
+        type: String
     },
-    password:{
-        type:String
-    },
-    zip:{
-        type:String
+    zip: {
+        type: String
     }
 })
 
-module.exports = mongoose.model('vipeRegister' , registerScheema)
+module.exports = mongoose.model('vipeRegister', registerScheema)
