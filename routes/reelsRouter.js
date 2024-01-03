@@ -227,39 +227,11 @@ router.get("/media/user/:userId", verifyAccessToken, async (req, res) => {
   }
 });
 
-// Getting liked posts for the logged user
-router.get(
-  "/media/likedPostsForUser/:userId",
-  verifyAccessToken,
-  async (req, res) => {
-    try {
-      const userId = req.userId; // The issue likely originates from this line
-      const likedPosts = await reelsdetails.find({ likedBy: userId });
-      res.json({ likedPosts });
-    } catch (error) {
-      console.error("Error retrieving liked posts:", error);
-      res.status(500).json({ error: "Failed to retrieve liked posts" });
-    }
-  }
-);
-
-router.get("/media/likedPostsForUser", verifyAccessToken, async (req, res) => {
-  try {
-    const userId = req.user.id; // Use req.user.id to get the user ID
-    const likedPosts = await reelsdetails.find({ likedBy: userId });
-    res.json({ likedPosts });
-  } catch (error) {
-    console.error("Error retrieving liked posts:", error);
-    res.status(500).json({ error: "Failed to retrieve liked posts" });
-  }
-});
-
-router.get("/liked-posts/:userId", verifyAccessToken, async (req, res) => {
+router.get("/likedPosts/:userId", verifyAccessToken, async (req, res) => {
   try {
     // const { userId } = req.params;
     const userId = req.user.id;
 
-    // Find posts where the user has liked
     const likedPosts = await reelsdetails.find({ likedBy: userId });
 
     res.json(likedPosts);
