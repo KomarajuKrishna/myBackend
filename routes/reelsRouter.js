@@ -49,6 +49,7 @@ const verifyAccessToken = async (request, response, next) => {
 //Uploading  media
 router.post(
   "/media",
+  verifyAccessToken,
   upload.single("media"),
   verifyAccessToken,
   async (req, res) => {
@@ -88,6 +89,7 @@ router.post(
         url: mediaLocation,
         type: isVideo ? "video" : "image",
         mediaType: type,
+        postedBy: req.user.id,
         // Other fields from your request body
         // Example:
         // mobile: req.body.mobile,
@@ -143,7 +145,6 @@ router.get("/media/:id", verifyAccessToken, async (req, res) => {
     res.status(500).json({ error: "Failed to retrieve media by ID" });
   }
 });
-
 
 //Like Api
 router.put("/media/:id/like", verifyAccessToken, async (req, res) => {
@@ -210,6 +211,32 @@ router.put("/media/:id/comment", verifyAccessToken, async (req, res) => {
   } catch (error) {
     console.error("Error adding comment:", error);
     res.status(500).json({ success: false, message: "Unable to add comment" });
+  }
+});
+
+// Getting all posts by a specific user Api
+router.get("/media/user/:userId", verifyAccessToken, async (req, res) => {
+  try {
+    // const userId = req.params.userId;
+    const userId = req.user.id;
+    const userPosts = await reelsdetails.find({ postedBy: userId });
+    res.json(userPosts);
+  } catch (error) {
+    console.error("Error retrieving user posts:", error);
+    res.status(500).json({ error: "Failed to retrieve user posts" });
+  }
+});
+
+router.get("/likedPosts/:userId", verifyAccessToken, async (req, res) => {
+  try {
+    // const { userId } = req.params;
+    const userId = req.user.id;
+
+    const likedPosts = await reelsdetails.find({ likedBy: userId });
+
+    res.json(likedPosts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

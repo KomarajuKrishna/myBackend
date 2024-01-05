@@ -7,6 +7,7 @@ const reelsSchema = new mongoose.Schema({
   profileImage: { type: String },
   randomNumber: { type: String },
   mobile: { type: String },
+  postedBy: {type: String},
   videoreel: { type: String },
   description: { type: String },
   comment: { type: String },

@@ -82,9 +82,7 @@ router.get("/users", async (req, res) => {
 router.get("/users/:id", async (req, res) => {
   try {
     const { id } = req.params;
-
     const user = await Register.findById(id);
-
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     } else {
@@ -97,7 +95,6 @@ router.get("/users/:id", async (req, res) => {
 });
 
 //registration
-
 router.post("/Register", async (req, res) => {
   try {
     const newSignup
