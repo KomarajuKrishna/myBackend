@@ -30,9 +30,7 @@ router.post("/logindetails", async (req, res, next) => {
     }
 
     // Check if the user exists
-    const user = await Register.findOne({ mobile: mobile })
-      .select("+password")
-      .exec();
+    const user = await Register.findOne({ mobile: mobile }).select("+password").exec();
 
     if (!user) {
       return res.status(401).json({
@@ -40,11 +38,8 @@ router.post("/logindetails", async (req, res, next) => {
       });
     }
 
-    // Authenticate the user
-    // const passwordMatch = await bcrypt.compare(password, user.password);
-    const passwordMatch = password === user.password;
-    // console.log(newPassword);
-    console.log(passwordMatch);
+    // Authenticate the user using bcrypt.compare
+    const passwordMatch = await bcrypt.compare(password, user.password);
 
     if (!passwordMatch) {
       return res.status(401).json({
@@ -53,22 +48,12 @@ router.post("/logindetails", async (req, res, next) => {
     }
 
     // Generate JWT token
-    // const token = jwt.sign(
-    //   { userId: user._id, mobile: user.mobile },
-    //   "AccessToken",
-    //   { expiresIn: "1h" } // Token expiration time
-    // );
     const playLoad = {
       userId: user._id,
       name: user.Fullname,
     };
     const jwtToken = jwt.sign(playLoad, "AccessToken");
-    // await redisClient.set(
-    //   "authorizationToken",
-    //   jwtToken,
-    //   "EX",
-    //   DEFAULT_EXPIRATION
-    // );
+
     res.status(200).json({
       message: "Authentication successful",
       token: jwtToken,
@@ -115,14 +100,14 @@ router.get("/users/:id", async (req, res) => {
 
 router.post("/Register", async (req, res) => {
   try {
-    const newSignup 
-    = new Register({
-      Fullname: req.body.Fullname,
-      Email: req.body.Email,
-      mobile: req.body.mobile,
-      Role: req.body.Role,
-      password: req.body.password,
-    });
+    const newSignup
+      = new Register({
+        Fullname: req.body.Fullname,
+        Email: req.body.Email,
+        mobile: req.body.mobile,
+        Role: req.body.Role,
+        password: req.body.password,
+      });
 
     // Check if user already exists
     const existingUser = await Register.findOne({ mobile: req.body.mobile });

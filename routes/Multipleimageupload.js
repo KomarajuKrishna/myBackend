@@ -60,15 +60,6 @@ router.post('/multiupload', upload.array('images', 5), async (req, res) => {
             return res.status(400).json({ error: 'No files were uploaded.' });
         }
 
-        const mobileNumber = req.body.mobileNumber; // Get mobile number from request
-
-        // Check if mobile number exists in vipeRegister schema
-        const userExists = await vipeRegister.findOne({ mobile: mobileNumber });
-
-        if (!userExists) {
-            return res.status(400).json({ error: 'Number does not exist.' });
-        }
-
         const images = [];
 
         for (let index = 0; index < req.files.length; index++) {
@@ -91,27 +82,24 @@ router.post('/multiupload', upload.array('images', 5), async (req, res) => {
             images.push({ index: index + 1, url: fileLocation });
         }
 
-        // Update images array in the existing Business document
-        const updatedBusiness = await Business.findOneAndUpdate(
-            { mobileNumber: mobileNumber },
+        // Update images array in all Business documents
+        const updatedBusinesses = await Business.updateMany(
+            {},
             { $set: { images: images } },
             { new: true }
         );
 
-        console.log('Images saved in MongoDB:', updatedBusiness);
+        console.log('Images saved in MongoDB:', updatedBusinesses);
 
         res.status(200).json({
             message: 'Images uploaded successfully in MongoDB and S3',
-            Images: updatedBusiness.images,
+            Images: updatedBusinesses.images,
         });
     } catch (error) {
         console.error('Error uploading images:', error);
         res.status(500).json({ error: 'Error uploading images.' });
     }
 });
-
-
-
 
 
 router.delete('/deleteImage/:businessId/:imageId', async (req, res) => {
@@ -145,3 +133,52 @@ router.delete('/deleteImage/:businessId/:imageId', async (req, res) => {
 
 
 module.exports = router;
+
+
+// User
+// router.post('/multiupload/:id', upload.array('images', 5), async (req, res) => {
+//     try {
+//         if (!req.files || req.files.length === 0) {
+//             return res.status(400).json({ error: 'No files were uploaded.' });
+//         }
+
+//         const images = [];
+
+//         for (let index = 0; index < req.files.length; index++) {
+//             const file = req.files[index];
+//             const timestamp = Date.now();
+//             const key = `images/${timestamp}-${index + 1}-${file.originalname}`; // Add index to the key
+
+//             console.log('Uploading to S3:', key);
+
+//             const params = {
+//                 Bucket: 'vipmero-one',
+//                 Key: key,
+//                 Body: file.buffer,
+//             };
+
+//             const s3UploadResponse = await s3.upload(params).promise();
+//             const fileLocation = s3UploadResponse.Location;
+
+//             // Add image object with index to the images array
+//             images.push({ index: index + 1, url: fileLocation });
+//         }
+
+//         // Update images array in the existing Business document
+//         const updatedBusiness = await Business.findOneAndUpdate(
+//             { _id: req.params.id },
+//             { $set: { images: images } },
+//             { new: true }
+//         );
+
+//         console.log('Images saved in MongoDB:', updatedBusiness);
+
+//         res.status(200).json({
+//             message: 'Images uploaded successfully in MongoDB and S3',
+//             Images: updatedBusiness.images,
+//         });
+//     } catch (error) {
+//         console.error('Error uploading images:', error);
+//         res.status(500).json({ error: 'Error uploading images.' });
+//     }
+// });

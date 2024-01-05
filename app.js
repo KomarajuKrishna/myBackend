@@ -18,8 +18,10 @@ const port = 3000;
 
 // MongoDB connection URL
 // const dbUrl = "mongodb+srv://KomarajuBablu:Honeybablu1772@cluster0.zktypoh.mongodb.net/VIPMEAPP?retryWrites=true&w=majority";
-const dbUrl =
-  "mongodb+srv://KomarajuBablu:Honeybablu1772@cluster0.zktypoh.mongodb.net/VIPMEAPP?retryWrites=true&w=majority";
+// const dbUrl =
+//   "mongodb+srv://KomarajuBablu:Honeybablu1772@cluster0.zktypoh.mongodb.net/VIPMEAPP?retryWrites=true&w=majority";
+
+const dbUrl = "mongodb+srv://tarakeshkostu:tarakeshkostu@cluster0.oklqzax.mongodb.net/?retryWrites=true&w=majority";
 // Connecting to MongoDB
 const connectToDatabase = async () => {
   try {
