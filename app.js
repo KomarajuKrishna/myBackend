@@ -42,3 +42,4 @@ app.use('/', reelsRouter)
 app.use('/', business);
 app.use('/', imageupload);
 app.use('/', multipleimageupload);
+module.exports = app;
