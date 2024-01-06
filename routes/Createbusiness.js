@@ -52,24 +52,24 @@ router.post('/business', async (req, res) => {
 });
 
 
-router.get('/business', async (req, res) => {
-    try {
-        // Retrieve all businesses from the database
-        const businesses = await Business.find(); // This assumes you have a model named "Business"
+// router.get('/business', async (req, res) => {
+//     try {
+//         // Retrieve all businesses from the database
+//         const businesses = await Business.find(); // This assumes you have a model named "Business"
 
-        res.status(200).json({
-            message: "Businesses retrieved successfully",
-            status: "success",
-            businesses: businesses || [] // Return an empty array if no businesses are found
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            error: error.message,
-            status: "failed"
-        });
-    }
-});
+//         res.status(200).json({
+//             message: "Businesses retrieved successfully",
+//             status: "success",
+//             businesses: businesses || [] // Return an empty array if no businesses are found
+//         });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({
+//             error: error.message,
+//             status: "failed"
+//         });
+//     }
+// });
 
 router.get('/business/:mobileNumber', async (req, res) => {
     const mobileNumber = req.params.mobileNumber;
