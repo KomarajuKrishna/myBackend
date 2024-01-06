@@ -14,7 +14,7 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-const port = 3000;
+// const port = 3000;
 
 // MongoDB connection URL
 // const dbUrl = "mongodb+srv://KomarajuBablu:Honeybablu1772@cluster0.zktypoh.mongodb.net/VIPMEAPP?retryWrites=true&w=majority";
@@ -32,9 +32,9 @@ const connectToDatabase = async () => {
 
 connectToDatabase();
 
-app.listen(port, () => {
-  console.log(`Server is Running at: http://localhost:${port}`);
-});
+// app.listen(port, () => {
+//   console.log(`Server is Running at: http://localhost:${port}`);
+// });
 
 app.use('/', userRoutes);
 app.use('/', restaurantRoutes);
