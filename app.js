@@ -32,7 +32,7 @@ app.use(cors());
 
 // connectToDatabase();
 
-mongoose.connect('mongodb+srv://tarakeshkostu:tarakeshkostu@cluster0.oklqzax.mongodb.net/?retryWrites=true&w=majority', console.log("Dbconnected"))
+mongoose.connect('mongodb+srv://KomarajuBablu:Honeybablu1772@cluster0.zktypoh.mongodb.net/VIPMEAPP?retryWrites=true&w=majority', console.log("Dbconnected"))
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Header', 'Origin, X-Requested-With ,Content-Type,Accept,Autherization');
