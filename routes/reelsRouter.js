@@ -47,78 +47,70 @@ const verifyAccessToken = async (request, response, next) => {
 };
 
 //Uploading  media
-router.post(
-  "/media",
-  verifyAccessToken,
-  upload.single("media"),
-  verifyAccessToken,
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).send("No file uploaded.");
-      }
-
-      const file = req.file;
-
-      // Determine file type (video or image) based on mimetype
-      const isVideo = file.mimetype.includes("video");
-
-      // Uploading media to S3 without setting ACL
-      const s3 = new AWS.S3({
-        params: {
-          Bucket: "vipmero-one",
-        },
-      });
-
-      const uploadParams = {
-        Key: file.originalname,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-      };
-
-      const s3UploadResponse = await s3.upload(uploadParams).promise();
-      const mediaLocation = s3UploadResponse.Location;
-      const type = isVideo ? "video" : "image";
-      console.log(type);
-
-      console.log(`${isVideo ? "Video" : "Image"} uploaded to:`, mediaLocation);
-
-      // Creating the Media object with the mediaLocation
-      const mediaDetails = new reelsdetails({
-        media: mediaLocation,
-        url: mediaLocation,
-        type: isVideo ? "video" : "image",
-        mediaType: type,
-        postedBy: req.user.id,
-        // Other fields from your request body
-        // Example:
-        // mobile: req.body.mobile,
-        // profileImage: req.body.profileImage,
-        // Fullname: req.body.Fullname,
-        // description: req.body.description,
-        // comment: req.body.comment,
-        // share: req.body.share,
-        // randomNumber: req.body.randomNumber
-      });
-
-      await mediaDetails.save();
-
-      res.json({
-        message: `${
-          isVideo ? "Video" : "Image"
-        } information saved successfully`,
-      });
-    } catch (error) {
-      console.error("Error handling file upload or saving metadata:", error);
-      res
-        .status(500)
-        .json({ error: "Failed to process file upload or save metadata" });
+router.post("/media", upload.single("media"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).send("No file uploaded.");
     }
+
+    const file = req.file;
+
+    // Determine file type (video or image) based on mimetype
+    const isVideo = file.mimetype.includes("video");
+
+    // Uploading media to S3 without setting ACL
+    const s3 = new AWS.S3({
+      params: {
+        Bucket: "vipmero-one",
+      },
+    });
+
+    const uploadParams = {
+      Key: file.originalname,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+    };
+
+    const s3UploadResponse = await s3.upload(uploadParams).promise();
+    const mediaLocation = s3UploadResponse.Location;
+    const type = isVideo ? "video" : "image";
+    console.log(type);
+
+    console.log(`${isVideo ? "Video" : "Image"} uploaded to:`, mediaLocation);
+
+    // Creating the Media object with the mediaLocation
+    const mediaDetails = new reelsdetails({
+      media: mediaLocation,
+      url: mediaLocation,
+      type: isVideo ? "video" : "image",
+      mediaType: type,
+      postedBy: req.user.id,
+      // Other fields from your request body
+      // Example:
+      // mobile: req.body.mobile,
+      // profileImage: req.body.profileImage,
+      // Fullname: req.body.Fullname,
+      // description: req.body.description,
+      // comment: req.body.comment,
+      // share: req.body.share,
+      // randomNumber: req.body.randomNumber
+    });
+
+    await mediaDetails.save();
+
+    res.json({
+      message: `${isVideo ? "Video" : "Image"} information saved successfully`,
+    });
+  } catch (error) {
+    console.error("Error handling file upload or saving metadata:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to process file upload or save metadata" });
   }
-);
+});
 
 // Get all media
-router.get("/media", verifyAccessToken, async (req, res) => {
+router.get("/media", async (req, res) => {
   try {
     const allMedia = await reelsdetails.find();
     res.json(allMedia);
@@ -129,7 +121,7 @@ router.get("/media", verifyAccessToken, async (req, res) => {
 });
 
 //Get Media by ID
-router.get("/media/:id", verifyAccessToken, async (req, res) => {
+router.get("/media/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -147,7 +139,7 @@ router.get("/media/:id", verifyAccessToken, async (req, res) => {
 });
 
 //Like Api
-router.put("/media/:id/like", verifyAccessToken, async (req, res) => {
+router.put("/media/:id/like", async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
@@ -186,7 +178,7 @@ router.put("/media/:id/like", verifyAccessToken, async (req, res) => {
 });
 
 //Comments Api
-router.put("/media/:id/comment", verifyAccessToken, async (req, res) => {
+router.put("/media/:id/comment", async (req, res) => {
   try {
     const { id } = req.params;
     const { commentText } = req.body;
@@ -215,7 +207,7 @@ router.put("/media/:id/comment", verifyAccessToken, async (req, res) => {
 });
 
 // Getting all posts by a specific user Api
-router.get("/media/user/:userId", verifyAccessToken, async (req, res) => {
+router.get("/media/user/:userId", async (req, res) => {
   try {
     // const userId = req.params.userId;
     const userId = req.user.id;
@@ -227,7 +219,7 @@ router.get("/media/user/:userId", verifyAccessToken, async (req, res) => {
   }
 });
 
-router.get("/likedPosts/:userId", verifyAccessToken, async (req, res) => {
+router.get("/likedPosts/:userId", async (req, res) => {
   try {
     // const { userId } = req.params;
     const userId = req.user.id;
